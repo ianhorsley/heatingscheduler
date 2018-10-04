@@ -10,10 +10,10 @@ import pytz
 
 import logging
 
-from myversion2 import stats_defn
+#from heatmisercontroller import stats_defn
 
-def rfc339formant(input):
-  return rfc3339.format(input ,utc=True, use_system_timezone=False)
+def rfc339formant(inputdate):
+  return rfc3339.format(inputdate, utc=True, use_system_timezone=False)
 
 class gcal_processor():
   # Setup the Calendar API
@@ -23,7 +23,7 @@ class gcal_processor():
   timeMax = None
   service = None
   calendarAccess = {}
-  
+
   def __init__(self,scope,cred_file,client_file):
     self.scope = scope
     self.cred_file = cred_file
@@ -41,7 +41,7 @@ class gcal_processor():
         creds = tools.run_flow(flow, store)
     self.service = build('calendar', 'v3', http=creds.authorize(Http())) 
     return self.service
-    
+
   def set_start_time_midnight_local(self):
     #set the start time for the results of interest
     #any events starting after or finishing after this time will be included in results
@@ -103,11 +103,11 @@ class gcal_processor():
         reminder_time = min(reminder_time, rem['minutes'])
       return reminder_time
       
-  def _parse_google_dateortime(self, input):
+  def _parse_google_dateortime(self, inputdatetime):
     try:
-      return parse_datetime(input)
+      return parse_datetime(inputdatetime)
     except ValueError:
-      date = parse_date(input) 
+      date = parse_date(inputdatetime) 
       return self.localzone.localize(datetime.datetime(date.year, date.month, date.day))
       #return datetime_with_tzinfo.astimezone(pytz.utc)
   
@@ -362,9 +362,8 @@ def get_users_states(event_list, params, statlist):
   temp['user'] = 'SLEEP'
   temp['inuse_room'] = temp['sleep_room'] = None
   #print(statlist)
-  for stat in statlist:
-    #print(statlist[stats_defn.SL_SHORT_NAME])
-    temp[stat[stats_defn.SL_SHORT_NAME]] = None
+  for name, controllersettings in statlist.iteritems():
+    temp[name] = None
   
   state_list = []
   for trigger in trigger_list:
@@ -411,10 +410,10 @@ def get_users_states(event_list, params, statlist):
       state_list.append(temp.copy())
     elif temp['user'] != state_list[-1]['user']:
       state_list[-1] = temp.copy()
-
+     
   logging.debug("merged %s state list"%params['name'])
   for i in state_list:
-    stat_temps = ' '.join(stringN(i[e[stats_defn.SL_SHORT_NAME]]) for e in statlist)
+    stat_temps = ' '.join(stringN(i[e]) for e, _ in statlist.iteritems())
     logging.debug( '%s %s, %s %s, %s other %i %i %i %i %i %i' % (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['user'].ljust(17), stringN(i['inuse_room']), stringN(i['sleep_room']), stat_temps, i['HOME'], i['AWAY'], i['OUT'], i['AWAKE'], i['ACTIVE'], i['ACTIVE_SLEEP_ROOM']) ) 
 
   return state_list
@@ -458,10 +457,10 @@ def roundTime(dt=None, roundTo=60):
    if dt == None : dt = datetime.datetime.now()
    seconds = (dt.replace(tzinfo=None) - dt.min).seconds
    rounding = (seconds+roundTo/2) // roundTo * roundTo
-   return dt + datetime.timedelta(0,rounding-seconds,-dt.microsecond)
+   return dt + datetime.timedelta(0, rounding-seconds,-dt.microsecond)
 
-def roundToNearestInt(input, nearest):
-  return int(round(input/nearest,0) * nearest)
+def roundToNearestInt(inputnumber, nearest):
+  return int(round(inputnumber/nearest, 0) * nearest)
    
 MAXIMUM_STATES_PER_STAT = 4
 MAXIMUM_DAYS_PER_STAT = 7
@@ -508,8 +507,8 @@ def reduce_temperatures_for_stat(state_list):
         if (temp_range > 15):
           logging.warn("WARNING LONG FILTERING")
       #print("after")
-      #for i in filtered:    
-      #  print( i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['temp'])  
+      #for i in filtered:
+      #  print( i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['temp'])
       temps = temps + filtered
 
   temps.sort(key=lambda x:x['time'])
