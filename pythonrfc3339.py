@@ -292,7 +292,7 @@ def parse_datetime(s):
     """
     m = datetime_re.match(s)
     if m:
-        (y, m, d, hour, mins, sec, ignore1, frac_sec, wholetz, _, tzsign, tzhour, tzmin) = \
+        (y, m, d, hour, mins, sec, _, frac_sec, wholetz, _, tzsign, tzhour, tzmin) = \
             m.groups()
 
         if frac_sec:

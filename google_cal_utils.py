@@ -4,7 +4,7 @@ from httplib2 import Http
 from oauth2client import file, client, tools
 import rfc3339
 
-from pythonrfc3339 import parse_datetime, parse_date, datetime_re, make_re, UTC_TZ, date_re_str, time_re_str #date_re, 
+from pythonrfc3339 import parse_datetime, parse_date#, datetime_re, make_re, UTC_TZ, date_re_str, time_re_str, date_re
 import datetime
 import pytz
 
@@ -49,7 +49,7 @@ class gcal_processor():
     midnight_without_tzinfo = datetime.datetime(year=now.year, month=now.month, day=now.day)
     midnight_with_tzinfo = self.localzone.localize(midnight_without_tzinfo)
     self.start_time = midnight_with_tzinfo.astimezone(pytz.utc) #start of today from local time, in UTC
-    
+
     return self.start_time
     
   def set_search_time_range(self,days_before,days_after):
@@ -178,7 +178,7 @@ class gcal_processor():
             elif len(matching_states) == 1 and not matching_states[0] == 'IGNORE':
               event_list.append({
                                 'start': start,
-                                'end': end, 
+                                'end': end,
                                 'summary': summary,
                                 'length': length,
                                 'state': matching_states[0],
@@ -204,7 +204,7 @@ class gcal_processor():
     combined_list = combine_event_lists(events_awake, combined_list, events_work)
 
     logging.debug("merged %s user list"%params['name'])
-    for i in combined_list:  
+    for i in combined_list:
       user_lst = ', '.join(i['users'])
       logging.debug('%s %s %s %s %s, %s'%(i['start'].astimezone(ukest).strftime("%m-%d %H:%M"), i['end'].astimezone(ukest).strftime("%m-%d %H:%M"), i['state'].ljust(5), user_lst,i['calendar_name'].ljust(10), i['summary'] ))
     
@@ -413,7 +413,7 @@ def get_users_states(event_list, params, statlist):
   logging.debug("merged %s state list"%params['name'])
   for i in state_list:
     stat_temps = ' '.join(stringN(i[e]) for e, _ in statlist.iteritems())
-    logging.debug( '%s %s, %s %s, %s other %i %i %i %i %i %i' % (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['user'].ljust(17), stringN(i['inuse_room']), stringN(i['sleep_room']), stat_temps, i['HOME'], i['AWAY'], i['OUT'], i['AWAKE'], i['ACTIVE'], i['ACTIVE_SLEEP_ROOM']) ) 
+    logging.debug( '%s %s, %s %s, %s other %i %i %i %i %i %i' % (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['user'].ljust(17), stringN(i['inuse_room']), stringN(i['sleep_room']), stat_temps, i['HOME'], i['AWAY'], i['OUT'], i['AWAKE'], i['ACTIVE'], i['ACTIVE_SLEEP_ROOM']) )
 
   return state_list
 
@@ -470,7 +470,7 @@ STEP_TEMP_RANGE = 0.5
 START_MINUTES_RANGE = 30
 STEP_MINUTES_RANGE = 30
 
-ukest = pytz.timezone('Europe/London') 
+ukest = pytz.timezone('Europe/London')
 
 def filter_temperatures_for_stat(state_list,timeStart):
 
