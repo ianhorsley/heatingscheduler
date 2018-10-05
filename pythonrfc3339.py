@@ -292,7 +292,7 @@ def parse_datetime(s):
     """
     m = datetime_re.match(s)
     if m:
-        (y, m, d, hour, min, sec, ignore1, frac_sec, wholetz, ignore2, tzsign, tzhour, tzmin) = \
+        (y, m, d, hour, mins, sec, ignore1, frac_sec, wholetz, _, tzsign, tzhour, tzmin) = \
             m.groups()
 
         if frac_sec:
@@ -318,7 +318,7 @@ def parse_datetime(s):
                 tz = tzinfo(offset, _offset_to_tzname(offset))
 
         return datetime.datetime(int(y), int(m), int(d),
-                                 int(hour), int(min), int(sec), microsec,
+                                 int(hour), int(mins), int(sec), microsec,
                                  tz)
     else:
         raise ValueError('Invalid RFC 3339 datetime string', s)
@@ -334,8 +334,8 @@ def utcfromtimestamp(unix_epoch_timestamp):
     """Interprets its argument as a count of seconds elapsed since the
     Unix epoch, and returns a datetime.datetime in rfc3339.UTC_TZ
     timezone."""
-    (y, m, d, hour, min, sec) = time.gmtime(unix_epoch_timestamp)[:6]
-    return datetime.datetime(y, m, d, hour, min, sec, 0, UTC_TZ)
+    (y, m, d, hour, mins, sec) = time.gmtime(unix_epoch_timestamp)[:6]
+    return datetime.datetime(y, m, d, hour, mins, sec, 0, UTC_TZ)
 
 def utctotimestamp(dt):
     """Returns a count of the elapsed seconds between the Unix epoch

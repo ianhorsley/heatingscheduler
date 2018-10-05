@@ -4,7 +4,7 @@ from httplib2 import Http
 from oauth2client import file, client, tools
 import rfc3339
 
-from pythonrfc3339 import parse_datetime, parse_date, date_re, datetime_re, make_re, UTC_TZ, date_re_str, time_re_str
+from pythonrfc3339 import parse_datetime, parse_date, datetime_re, make_re, UTC_TZ, date_re_str, time_re_str #date_re, 
 import datetime
 import pytz
 
@@ -28,9 +28,8 @@ class gcal_processor():
     self.scope = scope
     self.cred_file = cred_file
     self.client_file = client_file
-    
-    self.localzone = pytz.timezone('Europe/London')
 
+    self.localzone = pytz.timezone('Europe/London')
 
   def connect_google(self):
     #SCOPES = 'https://www.googleapis.com/auth/calendar.readonly'
@@ -39,7 +38,7 @@ class gcal_processor():
     if not creds or creds.invalid:
         flow = client.flow_from_clientsecrets(self.client_file, self.SCOPES)
         creds = tools.run_flow(flow, store)
-    self.service = build('calendar', 'v3', http=creds.authorize(Http())) 
+    self.service = build('calendar', 'v3', http=creds.authorize(Http()))
     return self.service
 
   def set_start_time_midnight_local(self):
@@ -107,12 +106,12 @@ class gcal_processor():
     try:
       return parse_datetime(inputdatetime)
     except ValueError:
-      date = parse_date(inputdatetime) 
+      date = parse_date(inputdatetime)
       return self.localzone.localize(datetime.datetime(date.year, date.month, date.day))
       #return datetime_with_tzinfo.astimezone(pytz.utc)
   
   def get_calendar_events(self, calendar_id, default_user_list=None):
-    #assume that record actual time of the event and that reminder is set to trigger user to leave house. 
+    #assume that record actual time of the event and that reminder is set to trigger user to leave house.
     #gets the events from a calendar extending by reminder time forwards and a default afterwards.
     #users default user list if no list included in name.
     events_result = self._get_events_list(calendar_id)
@@ -168,7 +167,7 @@ class gcal_processor():
               #event_list.append([start.isoformat(), end.isoformat(), summary,None,matching_users])
               event_list.append({
                                 'start': start,
-                                'end': end, 
+                                'end': end,
                                 'summary': summary,
                                 'length': length,
                                 'state': 'OUT',
@@ -202,8 +201,8 @@ class gcal_processor():
     
     events_awake = get_awake_events(events_work,combined_list,params,self.start_time, 10)
     
-    combined_list = combine_event_lists(events_awake, combined_list, events_work) 
-    
+    combined_list = combine_event_lists(events_awake, combined_list, events_work)
+
     logging.debug("merged %s user list"%params['name'])
     for i in combined_list:  
       user_lst = ', '.join(i['users'])
@@ -362,7 +361,7 @@ def get_users_states(event_list, params, statlist):
   temp['user'] = 'SLEEP'
   temp['inuse_room'] = temp['sleep_room'] = None
   #print(statlist)
-  for name, controllersettings in statlist.iteritems():
+  for name, _ in statlist.iteritems():
     temp[name] = None
   
   state_list = []
@@ -441,7 +440,7 @@ def select_temperatures(state_list,temp_name):
       temps.append(temp.copy())
     else: #if the time between two events to short, move the later temp forwards (note this also lets through if new temp is same as last, but does no harm
       if len(temps) > 1: #if only one temp don't check for doubles
-        if temps[-2]['temp'] != temp['temp']: 
+        if temps[-2]['temp'] != temp['temp']:
           temps[-1]['temp'] = temp['temp']
         else: #remove entries that would have matching temps
           del temps[-1]
@@ -495,8 +494,8 @@ def reduce_temperatures_for_stat(state_list):
       temps = temps + group
     else:
       #print("Filtering needed", group[0])
-      #for i in group:    
-      #  print( i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['temp'])  
+      #for i in group:
+      #  print( i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['temp'])
       filtered = None
       temp_range = START_TEMP_RANGE
       minutes_range = START_MINUTES_RANGE

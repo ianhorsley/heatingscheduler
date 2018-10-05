@@ -21,7 +21,7 @@ logging_setup.initialize_logger('logs', logging.WARN, True)
 
 
 #from datetime import datetime, timedelta, date
-import datetime
+#import datetime
 import pytz
 
 from user_defn import *
@@ -51,7 +51,7 @@ except hms.HeatmiserControllerSetupInitError as err:
     raise
 
 statlist = settings['devices']
-    
+
 #calendars general
 #Entries either must be less than 1 day in length or contain a state to be considered
 #Entries with state IGNORE are always ignored
@@ -147,10 +147,10 @@ createsublement(other, 'calendarslastupdated', gcal.get_last_calendar_update_tim
 createsublement(other, 'calendarslastpolled', gcal.get_last_calendar_poll_time().isoformat())
 
 cals = ET.SubElement(data, 'calendars') #should contain list of calendars and last update time
-for id, values in gcal.calendarAccess.iteritems():
+for itemid, values in gcal.calendarAccess.iteritems():
   stat = ET.SubElement(cals, 'calendar')
   createsublement(stat, 'name', values['name'])
-  createsublement(stat, 'id', id)
+  createsublement(stat, 'id', itemid)
   createsublement(stat, 'lastUpdated', values['lastUpdated'])
 
 stats = ET.SubElement(data, 'stats') #should contain list of stats and last update time, and entries required
