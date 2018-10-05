@@ -16,7 +16,7 @@ import logging
 from heatmisercontroller import logging_setup
 from heatmisercontroller import setup as hms
 
-logging_setup.initialize_logger('logs', logging.WARN, True)
+logging_setup.initialize_logger('logs', logging.INFO, True)
 #logging.basicConfig(level=logging.DEBUG)
 
 
@@ -24,25 +24,21 @@ logging_setup.initialize_logger('logs', logging.WARN, True)
 #import datetime
 import pytz
 
-from user_defn import *
-from google_cal_utils import *
-
+from user_defn import jointcalendarid, ian_params, izzy_params
+from google_cal_utils import gcal_processor, get_users_states, select_temperatures, filter_temperatures_for_stat
 
 # Setup the Calendar API
 gcal = gcal_processor('https://www.googleapis.com/auth/calendar.readonly', 'credentials.json', 'client_secret.json')
 service = gcal.connect_google()
 
-# get events from calendar for the next 3 days
+# Setup time variables
 ukest = pytz.timezone('Europe/London')
-
 timeMidnight = gcal.set_start_time_midnight_local()
-now = gcal.setuptime
+#now = gcal.setuptime
+gcal.set_search_time_range(5,10) # Days before and days after today. Needs the history for events that started in the past.
 
-gcal.set_search_time_range(5,10)
 
-# Get the list of room from the stats on heatmiser network
-
-# Initialize controller setup
+# Get the list of rooms/zones from the stats on heatmiser network
 try:
     hmsetup = hms.HeatmiserControllerFileSetup("hmcontroller.conf")
     settings = hmsetup.settings
@@ -52,17 +48,16 @@ except hms.HeatmiserControllerSetupInitError as err:
 
 statlist = settings['devices']
 
-#calendars general
-#Entries either must be less than 1 day in length or contain a state to be considered
-#Entries with state IGNORE are always ignored
-#Entries with a name only apply to those names
+# General notes on calendars entries
+#  Entries either must be less than 1 day in length or contain a state to be considered
+#  Entries with state IGNORE are always ignored
+#  Entries with a name only apply to those names
 
-#Resedency
-#Entries in Joint calendar that contain a name or state (AWAY, HOME, IGNORE) have an impact on the resedency
-
+# Residency
+#  Entries in Joint calendar that contain a name or state (AWAY, HOME, IGNORE) have an impact on the resedency
 
 logging.info('Quickstart, Getting the upcoming events')
-pcalid = 'primary'
+#pcalid = 'primary'
 
 logging.debug("this morning %s"% timeMidnight.isoformat())
 

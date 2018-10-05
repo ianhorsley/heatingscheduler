@@ -38,7 +38,7 @@ class gcal_processor():
     if not creds or creds.invalid:
         flow = client.flow_from_clientsecrets(self.client_file, self.SCOPES)
         creds = tools.run_flow(flow, store)
-    self.service = build('calendar', 'v3', http=creds.authorize(Http()))
+    self.service = build('calendar', 'v3', http=creds.authorize(Http()), cache_discovery=False)
     return self.service
 
   def set_start_time_midnight_local(self):
