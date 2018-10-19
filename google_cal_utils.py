@@ -70,17 +70,16 @@ class gcal_processor():
     else:
       logging.error("Times or service note connected.")
       
-  def _record_calendar_access_time(self,calendar_id,event_list_results):
-    
+  def _record_calendar_access_time(self, calendar_id, event_list_results):
+    """Records calendar access time against calendar_id
+    Array contains, summary and updated entires from event list and query time as now."""
     self.calendarAccess[calendar_id] = {'name':event_list_results.get('summary'),'lastUpdated':event_list_results.get('updated'),'lastQueried':datetime.datetime.now()}
     
     logging.info("Calender %s queried at %s, and last updated %s" % (event_list_results.get('summary'),datetime.datetime.now().strftime("%m-%d %H:%M"), event_list_results.get('updated')))
     
-    return event_list_results.get('summary')
-    
   DEFAULT_REMINDER_TIME = 20
   MAXIMUM_REMINDER_TIME = 120
-  USE_REMINDERS = True
+  USE_REMINDERS = True #if true extends start of events by the reminder time.
   TIME_TO_GET_HOME = 20
   
   def get_last_calendar_update_time(self):
@@ -94,6 +93,10 @@ class gcal_processor():
     return max(dates)
 
   def _get_shortest_reminder_time(self, reminder_list):
+    """If there are multiple reminders select the closest to the event start. Subject to a maximum reminder time.
+    If there are no remindaers set use default.
+    
+    Use shortest reminder, assuming the last is the one that relates to leaving house."""
     if len(reminder_list) == 0:
       return self.DEFAULT_REMINDER_TIME
     else:
@@ -103,25 +106,28 @@ class gcal_processor():
       return reminder_time
       
   def _parse_google_dateortime(self, inputdatetime):
+    """Try parsing as a datetime, otherwise try parsing as a date."""
     try:
       return parse_datetime(inputdatetime)
     except ValueError:
       date = parse_date(inputdatetime)
       return self.localzone.localize(datetime.datetime(date.year, date.month, date.day))
-      #return datetime_with_tzinfo.astimezone(pytz.utc)
   
   def get_calendar_events(self, calendar_id, default_user_list=None):
-    #assume that record actual time of the event and that reminder is set to trigger user to leave house.
+    """Get events from a calendar, filtering, extending by reminders and processing for state."""
+    #assume that we record actual time of the event and that reminder is set to trigger user to leave house.
     #gets the events from a calendar extending by reminder time forwards and a default afterwards.
     #users default user list if no list included in name.
+
     events_result = self._get_events_list(calendar_id)
-    events = events_result.get('items', [])
     
-    calendar_name = self._record_calendar_access_time(calendar_id,events_result)
-    
-    #use shortest reminder, assuming the last is the one that relates to leaving house
+    calendar_name = events_result.get('summary')
+    logging.debug('Getting events from ' + calendar_name)
+       
+    self._record_calendar_access_time(calendar_id,events_result)
     default_reminder_time = self._get_shortest_reminder_time(events_result.get('defaultReminders'))
-    
+
+    events = events_result.get('items', [])
     event_list = []
     
     if not events:
@@ -130,7 +136,7 @@ class gcal_processor():
       start = self._parse_google_dateortime(event['start'].get('dateTime', event['start'].get('date')))
       end = self._parse_google_dateortime(event['end'].get('dateTime', event['end'].get('date')))
       
-      #print (event['start'], event['summary'], event['reminders'])
+      # process any reminders, considering defaults, etc.
       if self.USE_REMINDERS:
         if event['reminders']['useDefault']:
           reminder = default_reminder_time
@@ -145,37 +151,19 @@ class gcal_processor():
 
       length = end - start
       summary = event['summary']
-      #print(start.isoformat(), end.isoformat())
 
       ##Residency
-      #find entries that start today onwards or started previous and finish after today
-      #print(end.isoformat())
-      #if ( (isinstance(end, datetime.date) and timeMidnight.date() < end) or (isinstance(end, datetime.datetime) and timeMidnight < end)):
-      if ( self.start_time < end ):
+      
+      if ( self.start_time < end ): #ignore entries that finished before start of today.
         
-        #if any(s in summary.upper() for s in residency_states) and any(s in summary.upper() for s in users):
           matching_states = [s for s in self.residency_states if s in summary.upper()]
           matching_users = [s for s in self.users if s in summary.upper()]
 
           if len(matching_states) <= 1: #only process if less than two states, otherwise warn
-            if len(matching_users) == 0 or len(matching_states) == 0: #if doesn't have any users or doesn't have a state
+            if len(matching_users) == 0: #if doesn't have any users attach default
               matching_users = default_user_list
-              matching_states = []
-          
-          
-            if len(matching_states) == 0 and length < datetime.timedelta(days=1) :
-              #event_list.append([start.isoformat(), end.isoformat(), summary,None,matching_users])
-              event_list.append({
-                                'start': start,
-                                'end': end,
-                                'summary': summary,
-                                'length': length,
-                                'state': 'OUT',
-                                'users': matching_users,
-                                'calendar_name': calendar_name
-                                })
-              #print(start.isoformat(), end.isoformat(), summary,length,None,matching_users)
-            elif len(matching_states) == 1 and not matching_states[0] == 'IGNORE':
+            if len(matching_states) == 1: print "ddd", len(matching_states) == 1, not matching_states[0] == 'IGNORE'
+            if len(matching_states) == 1 and not matching_states[0] == 'IGNORE': #if it has a state record this.
               event_list.append({
                                 'start': start,
                                 'end': end,
@@ -185,8 +173,20 @@ class gcal_processor():
                                 'users': matching_users,
                                 'calendar_name': calendar_name
                                 })
-              #print(start.isoformat(), end.isoformat(), summary,length,matching_states[0],matching_users)
-              
+              logging.debug("%s %s %s %s %s %s"%(start.isoformat(), end.isoformat(), summary, length, matching_states[0], matching_users))
+            elif len(matching_states) == 0 and length < datetime.timedelta(days=1) : #if no state and shorter than 24 hours then treat as OUT.
+              event_list.append({
+                                'start': start,
+                                'end': end,
+                                'summary': summary,
+                                'length': length,
+                                'state': 'OUT',
+                                'users': matching_users,
+                                'calendar_name': calendar_name
+                                })
+              logging.debug("%s %s %s %s %s %s"%(start.isoformat(), end.isoformat(), summary, length, 'OUT', matching_users))
+            else:
+              logging.debug("%s %s %s DROPPED"%(start.isoformat(), end.isoformat(), summary))
           else:
             logging.warn("Calendar event, issue with to many states")
             
@@ -194,6 +194,7 @@ class gcal_processor():
     return event_list
     
   def get_users_events(self, params, events_joint):
+    """Get all the events for a user."""
     events = self.get_calendar_events(params['calendar_id'], [params['name']])
     events_work = self.get_calendar_events(params['calendar_id_work'], [params['name']])
     
@@ -211,7 +212,7 @@ class gcal_processor():
     return combined_list
 
 def combine_event_lists(*args):
-  #combines multiple lists of events and sorts by start time and merges events.
+  """combines multiple lists of events and sorts by start time and merges overlapping events with same state."""
   flat_list = [item for sublist in args for item in sublist]
   flat_list.sort(key=lambda x:x['start'])
   return merge_events(flat_list)
@@ -228,7 +229,7 @@ def filter_events(events, user):
   return new_list
   
 def merge_events(events):
-  #takes a sorted by start time event list and merges any overlapping or touching events with the same state.
+  """takes a sorted (by start time) event list and merges any overlapping or touching events with the same state."""
   new_list = [events[0]]
   for i in range(1,len(events)):
     if events[i]['state'] == new_list[-1]['state'] and events[i]['users'] == new_list[-1]['users']:

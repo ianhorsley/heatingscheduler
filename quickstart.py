@@ -11,9 +11,11 @@ Processes these events to find user precense and states.
 User states converted into list of target temperatures per room.
 
 Requirements on calendar entries
-    Entries either must be less than 1 day in length or contain a state to be considered
+    Entries either must be less than 1 day in length or contain a state (AWAY, HOME) to be considered.
     Entries with state IGNORE are always ignored
     Entries with a name only apply to those names
+    Assume that we record actual time of the event and that reminder is set to trigger user to leave house. 
+        A default extension is allowed afterwards to allow for the addtional time returning home.
 
 User residency from joint calendar
     Entries in the joint calendar that contain a name or state (AWAY, HOME, IGNORE) have an impact on the residency
@@ -54,29 +56,14 @@ logging.debug("this morning %s"% timeMidnight.isoformat())
 
 events_joint = gcal.get_calendar_events(jointcalendarid, ['IAN','IZZY'])
 
-#process to find izzy sleep times
-
+#process to find izzy states
 combined_list = gcal.get_users_events(izzy_params, events_joint)
-# logging.debug("merged izzy list")
-# for i in combined_list:
-  # print( i['start'].astimezone(ukest).strftime("%m-%d %H:%M"), i['end'].astimezone(ukest).strftime("%m-%d %H:%M"), i['state'].ljust(5), i['users'], i['summary'], i['calendar_name'] )
-
 z_state_list = get_users_states(combined_list, izzy_params, statlist)
 
-# for i in z_state_list:
-  # print( i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['user'].ljust(17), stringN(i['inuse_room']), stringN(i['sleep_room']), stringN(i['Kit']), stringN(i['B1']), stringN(i['B2']), stringN(i['Cons']), ' other ', i['HOME'], i['AWAY'], i['OUT'], i['AWAKE'], i['ACTIVE'], i['ACTIVE_SLEEP_ROOM'])
-
+#process to find ian states
 combined_list = gcal.get_users_events(ian_params, events_joint)
-# print("merged ian list")
-# for i in combined_list:
-  # print( i['start'].astimezone(ukest).strftime("%m-%d %H:%M"), i['end'].astimezone(ukest).strftime("%m-%d %H:%M"), i['state'].ljust(5), i['users'], i['summary'], i['calendar_name'] )
-
 ###Need to handle impact of each users wake states on each other. If close (say within 2 hours), take the earlier bed and sleep times.
-
 a_state_list = get_users_states(combined_list, ian_params, statlist)
-
-# for i in a_state_list:
-  # logging.debug( '%s %s, %s %s %s %s %s %s other %i %i %i %i %i %i' % (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['user'].ljust(17), stringN(i['inuse_room']), stringN(i['sleep_room']), stringN(i['Kit']), stringN(i['B1']), stringN(i['B2']), stringN(i['Cons']), i['HOME'], i['AWAY'], i['OUT'], i['AWAKE'], i['ACTIVE'], i['ACTIVE_SLEEP_ROOM']) )
 
 #combine users states
 combined_state_list = z_state_list + a_state_list
