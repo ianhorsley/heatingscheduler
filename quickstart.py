@@ -6,24 +6,27 @@
 # Test out processing calendars
 #
 """
-Shows basic usage of the Google Calendar API. Creates a Google Calendar API
-service object and outputs a list of the next 10 events on the user's calendar.
+Gets data from multiple Google Calendars through API.
+Processes these events to find user precense and states.
+User states converted into list of target temperatures per room.
+
+Requirements on calendar entries
+    Entries either must be less than 1 day in length or contain a state to be considered
+    Entries with state IGNORE are always ignored
+    Entries with a name only apply to those names
+
+User residency from joint calendar
+    Entries in the joint calendar that contain a name or state (AWAY, HOME, IGNORE) have an impact on the residency
 """
 from __future__ import print_function
 
 import logging
 # hm imports
 from heatmisercontroller import logging_setup
+logging_setup.initialize_logger('logs', logging.INFO, True)
 from heatmisercontroller import setup as hms
 
-logging_setup.initialize_logger('logs', logging.INFO, True)
-#logging.basicConfig(level=logging.DEBUG)
-
-
-#from datetime import datetime, timedelta, date
-#import datetime
 import pytz
-
 from user_defn import jointcalendarid, ian_params, izzy_params
 from google_cal_utils import gcal_processor, get_users_states, select_temperatures, filter_temperatures_for_stat
 
@@ -37,7 +40,6 @@ timeMidnight = gcal.set_start_time_midnight_local()
 #now = gcal.setuptime
 gcal.set_search_time_range(5,10) # Days before and days after today. Needs the history for events that started in the past.
 
-
 # Get the list of rooms/zones from the stats on heatmiser network
 try:
     hmsetup = hms.HeatmiserControllerFileSetup("hmcontroller.conf")
@@ -45,20 +47,9 @@ try:
 except hms.HeatmiserControllerSetupInitError as err:
     logging.error(err)
     raise
-
 statlist = settings['devices']
 
-# General notes on calendars entries
-#  Entries either must be less than 1 day in length or contain a state to be considered
-#  Entries with state IGNORE are always ignored
-#  Entries with a name only apply to those names
-
-# Residency
-#  Entries in Joint calendar that contain a name or state (AWAY, HOME, IGNORE) have an impact on the resedency
-
 logging.info('Quickstart, Getting the upcoming events')
-#pcalid = 'primary'
-
 logging.debug("this morning %s"% timeMidnight.isoformat())
 
 events_joint = gcal.get_calendar_events(jointcalendarid, ['IAN','IZZY'])
