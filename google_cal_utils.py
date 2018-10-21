@@ -15,7 +15,7 @@ import logging
 def rfc339formant(inputdate):
   return rfc3339.format(inputdate, utc=True, use_system_timezone=False)
 
-class gcal_processor():
+class gcal_processor(object):
   # Setup the Calendar API
   residency_states = ['AWAY','HOME','IGNORE']
   users = ['IAN','IZZY','GUEST']
@@ -51,7 +51,7 @@ class gcal_processor():
     self.start_time = midnight_with_tzinfo.astimezone(pytz.utc) #start of today from local time, in UTC
 
     return self.start_time
-    
+
   def set_search_time_range(self,days_before,days_after):
     #set the timeMin and timeMax when getting data from the calendar.
     #input in days
@@ -84,12 +84,12 @@ class gcal_processor():
   
   def get_last_calendar_update_time(self):
     
-    dates = [self._parse_google_dateortime(x['lastUpdated']) for key, x in self.calendarAccess.iteritems()]
+    dates = [self._parse_google_dateortime(x['lastUpdated']) for _, x in self.calendarAccess.iteritems()]
     return max(dates)
     
   def get_last_calendar_poll_time(self):
     
-    dates = [x['lastQueried'] for key, x in self.calendarAccess.iteritems()]
+    dates = [x['lastQueried'] for _, x in self.calendarAccess.iteritems()]
     return max(dates)
 
   def _get_shortest_reminder_time(self, reminder_list):
@@ -114,7 +114,8 @@ class gcal_processor():
       return self.localzone.localize(datetime.datetime(date.year, date.month, date.day))
   
   def get_calendar_events(self, calendar_id, default_user_list=None):
-    """Get events from a calendar, filtering, extending by reminders and processing for state."""
+    """Get events from a calendar, filtering, extending by reminders and processing for state.
+    Returns list of dictionaries"""
     #assume that we record actual time of the event and that reminder is set to trigger user to leave house.
     #gets the events from a calendar extending by reminder time forwards and a default afterwards.
     #users default user list if no list included in name.
