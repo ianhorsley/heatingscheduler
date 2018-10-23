@@ -199,11 +199,11 @@ class gcal_processor(object):
         events = self.get_calendar_events(params['calendar_id'], [params['name']])
         events_work = self.get_calendar_events(params['calendar_id_work'], [params['name']])
         
-        combined_list = combine_event_lists(filter_events(events_joint,params['name']),events)
+        combined_list = self.combine_event_lists(self.filter_events(events_joint,params['name']),events)
         
-        events_awake = get_awake_events(events_work,combined_list,params,self.start_time, 10)
+        events_awake = self.get_awake_events(events_work,combined_list,params,self.start_time, 10)
         
-        combined_list = combine_event_lists(events_awake, combined_list, events_work)
+        combined_list = self.combine_event_lists(events_awake, combined_list, events_work)
 
         logging.debug("merged %s user list"%params['name'])
         for i in combined_list:
@@ -212,123 +212,125 @@ class gcal_processor(object):
         
         return combined_list
 
-def combine_event_lists(*args):
-    """combines multiple lists of events and sorts by start time and merges overlapping events with same state."""
-    flat_list = [item for sublist in args for item in sublist]
-    flat_list.sort(key=lambda x:x['start'])
-    return merge_events(flat_list)
+    def combine_event_lists(self, *args):
+        """combines multiple lists of events and sorts by start time and merges overlapping events with same state."""
+        flat_list = [item for sublist in args for item in sublist]
+        flat_list.sort(key=lambda x:x['start'])
+        return self.merge_events(flat_list)
     
-def filter_events(events, user):
-    #takes a list of events and filters for a single user
-    #returns only single user in result
-    new_list = []
-    for event in events:
-        if user in event['users']:
-            event['users'] = [user]
-            new_list.append(event)
+    @staticmethod
+    def filter_events(events, user):
+        #takes a list of events and filters for a single user
+        #returns only single user in result
+        new_list = []
+        for event in events:
+            if user in event['users']:
+                event['users'] = [user]
+                new_list.append(event)
 
-    return new_list
+        return new_list
     
-def merge_events(events):
-    """takes a sorted (by start time) event list and merges any overlapping or touching events with the same state."""
-    new_list = [events[0]]
-    for i in range(1,len(events)):
-        if events[i]['state'] == new_list[-1]['state'] and events[i]['users'] == new_list[-1]['users']:
-            if events[i]['start'] > new_list[-1]['end']: #if starts after end of recorded event
+    @staticmethod
+    def merge_events(events):
+        """takes a sorted (by start time) event list and merges any overlapping or touching events with the same state."""
+        new_list = [events[0]]
+        for i in range(1,len(events)):
+            if events[i]['state'] == new_list[-1]['state'] and events[i]['users'] == new_list[-1]['users']:
+                if events[i]['start'] > new_list[-1]['end']: #if starts after end of recorded event
+                    new_list.append(events[i])
+                elif events[i]['end'] > new_list[-1]['end']: #if not inside recorded event
+                    new_list[-1]['end'] = events[i]['end']
+            else:
                 new_list.append(events[i])
-            elif events[i]['end'] > new_list[-1]['end']: #if not inside recorded event
-                new_list[-1]['end'] = events[i]['end']
-        else:
-            new_list.append(events[i])
-                
-    return new_list
+                    
+        return new_list
     
-def get_awake_events(events_work, other_events, params, timeMidnight, number_of_days):
-    #takes a set of events from a calendar
-    #filters b length less than a day and assess each day.
-    #returns list of AWAKE events.
-    events_awake = []
-    
-    baseevent = {'state':"AWAKE",'users':[params['name']],'summary':'','calendar_name':'Process'}
-                                
-    for shift_day in range(0,number_of_days):
+    def get_awake_events(self, events_work, other_events, params, timeMidnight, number_of_days):
+        #takes a set of events from a calendar
+        #filters b length less than a day and assess each day.
+        #returns list of AWAKE events.
+        events_awake = []
+        
+        baseevent = {'state':"AWAKE",'users':[params['name']],'summary':'','calendar_name':'Process'}
+                                    
+        for shift_day in range(0,number_of_days):
 
-        start_datetime = timeMidnight + datetime.timedelta(days=shift_day)
-        end_datetime = timeMidnight +    datetime.timedelta(days=shift_day+1)
-        #print(start_datetime, " until ", end_datetime)
-        #current_date = current_datetime.date()
-        #00:00 is part of the day 00:01 and not the day before
-        shifts_complete = [elem for elem in events_work if elem['length'] < datetime.timedelta(days=1) and elem['start'] >= start_datetime and elem['end'] < end_datetime]
-        shifts_starting = [elem for elem in events_work if elem['length'] < datetime.timedelta(days=1) and elem['start'] >= start_datetime and elem['start'] < end_datetime and elem['end'] >= end_datetime]
-        shifts_ending = [elem for elem in events_work if elem['length'] < datetime.timedelta(days=1) and elem['start'] < start_datetime and elem['end'] >= start_datetime and elem['end'] < end_datetime]
-        
-        #find ends or starts today, and the highest and lowest
-        events_today = [elem for elem in other_events if elem['length'] < datetime.timedelta(days=1) and (elem['start'] >= start_datetime and elem['start'] < end_datetime or elem['end'] >= start_datetime and elem['end'] < end_datetime)]
-        if len(events_today) > 0:
-            start_events_today = min([elem['start'] for elem in events_today])
-            stop_events_today = max([elem['end'] for elem in events_today])
-        else:
-            start_events_today = end_datetime
-            stop_events_today = start_datetime
+            start_datetime = timeMidnight + datetime.timedelta(days=shift_day)
+            end_datetime = timeMidnight +    datetime.timedelta(days=shift_day+1)
+            #print(start_datetime, " until ", end_datetime)
+            #current_date = current_datetime.date()
+            #00:00 is part of the day 00:01 and not the day before
+            shifts_complete = [elem for elem in events_work if elem['length'] < datetime.timedelta(days=1) and elem['start'] >= start_datetime and elem['end'] < end_datetime]
+            shifts_starting = [elem for elem in events_work if elem['length'] < datetime.timedelta(days=1) and elem['start'] >= start_datetime and elem['start'] < end_datetime and elem['end'] >= end_datetime]
+            shifts_ending = [elem for elem in events_work if elem['length'] < datetime.timedelta(days=1) and elem['start'] < start_datetime and elem['end'] >= start_datetime and elem['end'] < end_datetime]
             
-        
-        number_of_shifts = [len(shifts_complete),len(shifts_starting), len(shifts_ending)]
-        #print(number_of_shifts)
-        
-        if number_of_shifts == [1, 0, 0]:
-            #print ("day shift")
-            event = baseevent.copy()
-            event['start'] = min(start_datetime + params['default_wake'],
-                                                                                         min(shifts_complete[0]['start'],start_events_today) - params['minimum_wake_before_event'])
-            event['end'] = max(start_datetime + params['default_sleep'],
-                                                                                         max(shifts_complete[0]['end'],stop_events_today) + params['minimum_wake_after_event'])
-            #print(event)
-            events_awake.append(event)
+            #find ends or starts today, and the highest and lowest
+            events_today = [elem for elem in other_events if elem['length'] < datetime.timedelta(days=1) and (elem['start'] >= start_datetime and elem['start'] < end_datetime or elem['end'] >= start_datetime and elem['end'] < end_datetime)]
+            if len(events_today) > 0:
+                start_events_today = min([elem['start'] for elem in events_today])
+                stop_events_today = max([elem['end'] for elem in events_today])
+            else:
+                start_events_today = end_datetime
+                stop_events_today = start_datetime
+                
             
-        elif number_of_shifts == [0, 1, 1]:
-            #print ("night to night")
-            event = baseevent.copy()
-            event['start'] = start_datetime
-            event['end'] = shifts_ending[0]['end'] + params['minimum_wake_after_event']
-            events_awake.append(event)
-            event = baseevent.copy()
-            event['start'] = min(shifts_starting[0]['start'] - params['minimum_wake_before_event'],
-                                                                                            shifts_ending[0]['end'] + params['minimum_wake_after_event'] + params['sleep_night_to_night'])
-            event['end'] = end_datetime
-            events_awake.append(event)
+            number_of_shifts = [len(shifts_complete),len(shifts_starting), len(shifts_ending)]
+            #print(number_of_shifts)
             
-        elif number_of_shifts == [0, 1, 0]:
-            #print ("night starting")
-            event = baseevent.copy()
-            event['start'] = min(start_datetime + params['default_wake'], start_events_today - params['minimum_wake_before_event'])
-            event['end'] = shifts_starting[0]['start'] - params['minimum_wake_before_event'] - params['sleep_before_night']
-            events_awake.append(event)
-            event = baseevent.copy()
-            event['start'] = shifts_starting[0]['start'] - params['minimum_wake_before_event']
-            event['end'] = end_datetime
-            events_awake.append(event)
-            
-        elif number_of_shifts == [0, 0, 1]:
-            #print ("night ending")
-            event = baseevent.copy()
-            event['start'] = start_datetime
-            event['end'] = shifts_ending[0]['end'] + params['minimum_wake_after_event'] +    params['sleep_after_night']
-            events_awake.append(event)
-            event = baseevent.copy()
-            event['start'] = shifts_ending[0]['end'] + params['default_sleep']
-            event['end'] = max(start_datetime + params['default_sleep'], stop_events_today + params['minimum_wake_after_event'])
-            events_awake.append(event)
-        else:
-            if number_of_shifts != [0, 0, 0]:
-                logging.warn("confused")
-            #else:
-                #print ("no shift")
-            event = baseevent.copy()
-            event['start'] = min(start_datetime + params['default_wake'], start_events_today - params['minimum_wake_before_event'])
-            event['end'] = max(start_datetime + params['default_sleep'], stop_events_today + params['minimum_wake_after_event'])
-            events_awake.append(event)
-            
-    return merge_events(events_awake)
+            if number_of_shifts == [1, 0, 0]:
+                #print ("day shift")
+                event = baseevent.copy()
+                event['start'] = min(start_datetime + params['default_wake'],
+                                                                                             min(shifts_complete[0]['start'],start_events_today) - params['minimum_wake_before_event'])
+                event['end'] = max(start_datetime + params['default_sleep'],
+                                                                                             max(shifts_complete[0]['end'],stop_events_today) + params['minimum_wake_after_event'])
+                #print(event)
+                events_awake.append(event)
+                
+            elif number_of_shifts == [0, 1, 1]:
+                #print ("night to night")
+                event = baseevent.copy()
+                event['start'] = start_datetime
+                event['end'] = shifts_ending[0]['end'] + params['minimum_wake_after_event']
+                events_awake.append(event)
+                event = baseevent.copy()
+                event['start'] = min(shifts_starting[0]['start'] - params['minimum_wake_before_event'],
+                                                                                                shifts_ending[0]['end'] + params['minimum_wake_after_event'] + params['sleep_night_to_night'])
+                event['end'] = end_datetime
+                events_awake.append(event)
+                
+            elif number_of_shifts == [0, 1, 0]:
+                #print ("night starting")
+                event = baseevent.copy()
+                event['start'] = min(start_datetime + params['default_wake'], start_events_today - params['minimum_wake_before_event'])
+                event['end'] = shifts_starting[0]['start'] - params['minimum_wake_before_event'] - params['sleep_before_night']
+                events_awake.append(event)
+                event = baseevent.copy()
+                event['start'] = shifts_starting[0]['start'] - params['minimum_wake_before_event']
+                event['end'] = end_datetime
+                events_awake.append(event)
+                
+            elif number_of_shifts == [0, 0, 1]:
+                #print ("night ending")
+                event = baseevent.copy()
+                event['start'] = start_datetime
+                event['end'] = shifts_ending[0]['end'] + params['minimum_wake_after_event'] +    params['sleep_after_night']
+                events_awake.append(event)
+                event = baseevent.copy()
+                event['start'] = shifts_ending[0]['end'] + params['default_sleep']
+                event['end'] = max(start_datetime + params['default_sleep'], stop_events_today + params['minimum_wake_after_event'])
+                events_awake.append(event)
+            else:
+                if number_of_shifts != [0, 0, 0]:
+                    logging.warn("confused")
+                #else:
+                    #print ("no shift")
+                event = baseevent.copy()
+                event['start'] = min(start_datetime + params['default_wake'], start_events_today - params['minimum_wake_before_event'])
+                event['end'] = max(start_datetime + params['default_sleep'], stop_events_today + params['minimum_wake_after_event'])
+                events_awake.append(event)
+                
+        return self.merge_events(events_awake)
 
 def get_users_states(event_list, params, statlist):
     #tasks full list of events (sorting not important) for a user.
