@@ -33,7 +33,7 @@ from user_defn import jointcalendarid, ian_params, izzy_params
 from google_cal_utils import gcal_processor, get_users_states, select_temperatures, filter_temperatures_for_stat
 
 # Setup the Calendar API
-gcal = gcal_processor('https://www.googleapis.com/auth/calendar.readonly', 'credentials.json', 'client_secret.json')
+gcal = gcal_processor('https://www.googleapis.com/auth/calendar.readonly', 'service.json')
 service = gcal.connect_google()
 
 # Setup time variables

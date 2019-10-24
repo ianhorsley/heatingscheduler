@@ -1,7 +1,7 @@
 
 from apiclient.discovery import build
 from httplib2 import Http
-from oauth2client import file, client, tools
+from google.oauth2 import service_account
 import rfc3339
 
 from pythonrfc3339 import parse_datetime, parse_date#, datetime_re, make_re, UTC_TZ, date_re_str, time_re_str, date_re
@@ -24,21 +24,14 @@ class gcal_processor(object):
     service = None
     calendarAccess = {}
 
-    def __init__(self,scope,cred_file,client_file):
+    def __init__(self, scope, cred_file):
         self.scope = scope
         self.cred_file = cred_file
-        self.client_file = client_file
-
         self.localzone = pytz.timezone('Europe/London')
 
     def connect_google(self):
-        #SCOPES = 'https://www.googleapis.com/auth/calendar.readonly'
-        store = file.Storage(self.cred_file)
-        creds = store.get()
-        if not creds or creds.invalid:
-                flow = client.flow_from_clientsecrets(self.client_file, self.SCOPES)
-                creds = tools.run_flow(flow, store)
-        self.service = build('calendar', 'v3', http=creds.authorize(Http()), cache_discovery=False)
+        creds = service_account.Credentials.from_service_account_file(self.cred_file, scopes=[self.scope])
+        self.service = build('calendar', 'v3', credentials=creds)
         return self.service
 
     def set_start_time_midnight_local(self):
