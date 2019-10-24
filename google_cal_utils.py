@@ -12,6 +12,8 @@ import logging
 
 #from heatmisercontroller import stats_defn
 
+ukest = pytz.timezone('Europe/London')
+
 def rfc339formant(inputdate):
     return rfc3339.format(inputdate, utc=True, use_system_timezone=False)
 
@@ -22,22 +24,30 @@ class gcal_processor(object):
     timeMin = None
     timeMax = None
     service = None
+    localzone = None
     calendarAccess = {}
 
     def __init__(self, scope, cred_file):
         self.scope = scope
         self.cred_file = cred_file
-        self.localzone = pytz.timezone('Europe/London')
+        #self.localzone = pytz.timezone('Europe/London')
 
     def connect_google(self):
         creds = service_account.Credentials.from_service_account_file(self.cred_file, scopes=[self.scope])
         self.service = build('calendar', 'v3', credentials=creds)
         return self.service
-
+    
+    def set_time_zone(self, timezonestring):
+        #stores a local time zone, if the server processing this script isn't local to home being monitored^M
+        self.localzone = pytz.timezone(timezonestring)
+        
     def set_start_time_midnight_local(self):
         #set the start time for the results of interest
         #any events starting after or finishing after this time will be included in results
-        now = datetime.datetime.now()
+        if self.localzone is not None:
+            now = datetime.datetime.now(self.localzone)
+        else:
+            now = datetime.datetime.now()
         self.setuptime = now
         midnight_without_tzinfo = datetime.datetime(year=now.year, month=now.month, day=now.day)
         midnight_with_tzinfo = self.localzone.localize(midnight_without_tzinfo)
@@ -190,19 +200,20 @@ class gcal_processor(object):
     def get_users_events(self, params, events_joint):
         """Get all the events for a user."""
         events = self.get_calendar_events(params['calendar_id'], [params['name']])
+
         events_work = self.get_calendar_events(params['calendar_id_work'], [params['name']])
-        
+
         combined_list = self.combine_event_lists(self.filter_events(events_joint,params['name']),events)
-        
+
         events_awake = self.get_awake_events(events_work,combined_list,params,self.start_time, 10)
-        
+
         combined_list = self.combine_event_lists(events_awake, combined_list, events_work)
 
         logging.debug("merged %s user list"%params['name'])
+
         for i in combined_list:
             user_lst = ', '.join(i['users'])
-            logging.debug('%s %s %s %s %s, %s'%(i['start'].astimezone(ukest).strftime("%m-%d %H:%M"), i['end'].astimezone(ukest).strftime("%m-%d %H:%M"), i['state'].ljust(5), user_lst,i['calendar_name'].ljust(10), i['summary'] ))
-        
+            logging.debug('%s %s %s %s %s, %s'%(i['start'].astimezone(self.localzone).strftime("%m-%d %H:%M"), i['end'].astimezone(self.localzone).strftime("%m-%d %H:%M"), i['state'].ljust(5), user_lst,i['calendar_name'].ljust(10), i['summary'] ))
         return combined_list
 
     def combine_event_lists(self, *args):
@@ -466,8 +477,6 @@ START_TEMP_RANGE = 1
 STEP_TEMP_RANGE = 0.5
 START_MINUTES_RANGE = 30
 STEP_MINUTES_RANGE = 30
-
-ukest = pytz.timezone('Europe/London')
 
 def filter_temperatures_for_stat(state_list,timeStart):
 

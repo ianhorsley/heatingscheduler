@@ -37,7 +37,7 @@ gcal = gcal_processor('https://www.googleapis.com/auth/calendar.readonly', 'serv
 service = gcal.connect_google()
 
 # Setup time variables
-ukest = pytz.timezone('Europe/London')
+gcal.set_time_zone('Europe/London') # Not local server to house so set the local time zone
 timeMidnight = gcal.set_start_time_midnight_local()
 #now = gcal.setuptime
 gcal.set_search_time_range(5,10) # Days before and days after today. Needs the history for events that started in the past.
@@ -51,8 +51,7 @@ except hms.HeatmiserControllerSetupInitError as err:
     raise
 statlist = settings['devices']
 
-logging.info('Quickstart, Getting the upcoming events')
-logging.debug("this morning %s"% timeMidnight.isoformat())
+logging.info('Getting the upcoming events')
 
 events_joint = gcal.get_calendar_events(jointcalendarid, ['IAN','IZZY'])
 
@@ -93,6 +92,7 @@ for trigger in combined_state_list:
   else:
     state_list[-1] = temp.copy()
 
+ukest = pytz.timezone('Europe/London')
 logging.debug("room state tracking")
 for i in state_list:
   logging.debug('%s %i %i %i %i other %s %s'% (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['Kit'], i['B1'], i['B2'], i['Cons'], i['IAN']['user'].ljust(17), i['IZZY']['user'].ljust(17))   )
