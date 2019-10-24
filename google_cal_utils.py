@@ -1,7 +1,6 @@
 
 from apiclient.discovery import build
 from httplib2 import Http
-#from oauth2client import file, client, tools
 from google.oauth2 import service_account
 import rfc3339
 
@@ -28,8 +27,6 @@ class gcal_processor(object):
     def __init__(self, scope, cred_file):
         self.scope = scope
         self.cred_file = cred_file
-        #self.client_file = client_file
-
         self.localzone = pytz.timezone('Europe/London')
 
     def connect_google(self):
