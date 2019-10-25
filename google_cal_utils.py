@@ -379,19 +379,19 @@ def get_users_states(event_list, params, statlist):
     #print(statlist)
     for name, _ in statlist.iteritems():
         temp[name] = None
-    
+
     state_list = []
     for trigger in trigger_list:
         temp[trigger['state']] += trigger['trigger']
         temp['time'] = trigger['time']
-        
+
         if temp['HOME'] > 0:
             temp_resident = 'HOME'
         elif temp['AWAY'] > 0 or temp['OUT'] > 0:
             temp_resident = 'AWAY'
         else:
             temp_resident = params['default_residency']
-            
+
         if temp_resident == 'AWAY':
             temp['user'] = 'AWAY'
             temp['inuse_room'] = None
@@ -412,10 +412,10 @@ def get_users_states(event_list, params, statlist):
             temp['user'] = 'INACTIVE'
             temp['inuse_room'] = params['temp_inactive']
             temp['sleep_room'] = None
-        
+
         for room in params['awake_rooms']:
             temp[room] = temp['inuse_room']
-        
+
         if params['sleep_room'] in params['awake_rooms']:
             temp[params['sleep_room']] = max(temp['sleep_room'], temp['inuse_room'])
         else:
@@ -477,7 +477,7 @@ def roundTime(dt=None, roundTo=60):
 
 def roundToNearestInt(inputnumber, nearest):
     return int(round(inputnumber/nearest, 0) * nearest)
-     
+
 MAXIMUM_STATES_PER_STAT = 4
 MAXIMUM_DAYS_PER_STAT = 7
 TIME_GRANULARITY = 15 #minutes
@@ -490,17 +490,16 @@ STEP_MINUTES_RANGE = 30
 def filter_temperatures_for_stat(state_list,timeStart):
 
     state_list = reduce_temperatures_for_stat(state_list)
-    
+
     endoftime = timeStart + datetime.timedelta(days=MAXIMUM_DAYS_PER_STAT)
-    
+
     return [{'time':roundTime(x['time'],60*TIME_GRANULARITY),'temp':roundToNearestInt(x['temp'],TEMP_GRANULARITY)} for x in state_list if x['time'] >= timeStart and x['time'] < endoftime]
-    
 
 def reduce_temperatures_for_stat(state_list):
 
     values = set(map(lambda x:x['time'].astimezone(ukest).date(), state_list))
     grouped_state_list = [[y for y in state_list if y['time'].astimezone(ukest).date()==x] for x in values]
-    
+
     temps = []
 
     for group in grouped_state_list:
