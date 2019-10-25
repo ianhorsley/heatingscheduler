@@ -116,6 +116,16 @@ class gcal_processor(object):
             date = parse_date(inputdatetime)
             return self.localzone.localize(datetime.datetime(date.year, date.month, date.day))
     
+    def get_calendars_events(self, calendar_id_list, user_list=None):
+        """Get events from multiple calendars, combining and filtering.
+        Returns list of dictionaries"""
+        combined_list = {}
+        for calendar_id in calendar_id_list:
+            events = self.get_calendar_events(calendar_id, user_list)
+            eventsfiltered = self.filter_events(events, user_list)
+            combined_list = self.combine_event_lists(combined_list,events)
+        return combined_list
+    
     def get_calendar_events(self, calendar_id, default_user_list=None):
         """Get events from a calendar, filtering, extending by reminders and processing for state.
         Returns list of dictionaries"""
@@ -197,17 +207,16 @@ class gcal_processor(object):
         event_list.sort(key=lambda x:x['start'])
         return event_list
         
-    def get_users_events(self, params, events_joint):
+    def get_users_events(self, params):
         """Get all the events for a user."""
-        events = self.get_calendar_events(params['calendar_id'], [params['name']])
+
+        events = self.get_calendars_events(params['calendar_id_list'], [params['name']])
 
         events_work = self.get_calendar_events(params['calendar_id_work'], [params['name']])
 
-        combined_list = self.combine_event_lists(self.filter_events(events_joint,params['name']),events)
+        events_awake = self.get_awake_events(events_work, events, params, self.start_time, 10)
 
-        events_awake = self.get_awake_events(events_work,combined_list,params,self.start_time, 10)
-
-        combined_list = self.combine_event_lists(events_awake, combined_list, events_work)
+        combined_list = self.combine_event_lists(events_awake, events, events_work)
 
         logging.debug("merged %s user list"%params['name'])
 

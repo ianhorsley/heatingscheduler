@@ -53,14 +53,12 @@ statlist = settings['devices']
 
 logging.info('Getting the upcoming events')
 
-events_joint = gcal.get_calendar_events(jointcalendarid, ['IAN','IZZY'])
-
 #process to find izzy states
-combined_list = gcal.get_users_events(izzy_params, events_joint)
+combined_list = gcal.get_users_events(izzy_params)
 z_state_list = get_users_states(combined_list, izzy_params, statlist)
 
 #process to find ian states
-combined_list = gcal.get_users_events(ian_params, events_joint)
+combined_list = gcal.get_users_events(ian_params)
 ###Need to handle impact of each users wake states on each other. If close (say within 2 hours), take the earlier bed and sleep times.
 a_state_list = get_users_states(combined_list, ian_params, statlist)
 
