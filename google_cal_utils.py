@@ -438,9 +438,9 @@ def stringN(number):
     if number == None:
         return " N"
     return str(number)
-    
+
 MINIMUM_TIME_AT_TEMP = 15 #in minutes
-    
+
 def select_temperatures(state_list,temp_name):
     #pulls out the temperature data for a room.
     #filters out where two temps the same
@@ -452,15 +452,16 @@ def select_temperatures(state_list,temp_name):
     for state in state_list:
         temp['time'] = state['time']
         temp['temp'] = state[temp_name]
-        
+
         if len(temps) == 0 or (temp['temp'] != temps[-1]['temp'] and temp['time'] >= temps[-1]['time'] + datetime.timedelta(minutes=MINIMUM_TIME_AT_TEMP)):
             temps.append(temp.copy())
-        else: #if the time between two events to short, move the later temp forwards (note this also lets through if new temp is same as last, but does no harm
-            if len(temps) > 1: #if only one temp don't check for doubles
-                if temps[-2]['temp'] != temp['temp']:
-                    temps[-1]['temp'] = temp['temp']
-                else: #remove entries that would have matching temps
-                    del temps[-1]
+        elif len(temps) > 1:
+            #else, the time between two events to short, move the later temp forwards (note this also lets through if new temp is same as last, but does no harm
+            #but if only one temp don't check for doubles
+            if temps[-2]['temp'] != temp['temp']:
+                temps[-1]['temp'] = temp['temp']
+            else: #remove entries that would have matching temps
+                del temps[-1]
 
     return temps
 
