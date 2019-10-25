@@ -1,6 +1,5 @@
 
 from apiclient.discovery import build
-from httplib2 import Http
 from google.oauth2 import service_account
 import rfc3339
 
@@ -123,7 +122,7 @@ class gcal_processor(object):
         for calendar_id in calendar_id_list:
             events = self.get_calendar_events(calendar_id, user_list)
             eventsfiltered = self.filter_events(events, user_list)
-            combined_list = self.combine_event_lists(combined_list,events)
+            combined_list = self.combine_event_lists(combined_list,eventsfiltered)
         return combined_list
     
     def get_calendar_events(self, calendar_id, default_user_list=None):
@@ -541,7 +540,7 @@ def filter_temperatures_by_temp(state_list, temp_range, minutes_range):
     for state in state_list:
         temp['time'] = state['time']
         temp['temp'] = state['temp']
-        
+
         if len(temps) != 0 and abs(temps[-1]['temp'] - temp['temp']) <= temp_range:
             temps[-1]['temp'] = max(temp['temp'],temps[-1]['temp']) #should improve on and make a weighted average or something more complex.
         elif len(temps) > 1 and abs(temps[-2]['temp'] - temp['temp']) <= temp_range and temp['time'] - temps[-2]['time']    <= datetime.timedelta(minutes=minutes_range):
@@ -551,5 +550,3 @@ def filter_temperatures_by_temp(state_list, temp_range, minutes_range):
             temps.append(temp.copy())
 
     return temps
-
-    

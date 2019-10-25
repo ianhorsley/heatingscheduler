@@ -14,7 +14,7 @@ Requirements on calendar entries
     Entries either must be less than 1 day in length or contain a state (AWAY, HOME) to be considered.
     Entries with state IGNORE are always ignored
     Entries with a name only apply to those names
-    Assume that we record actual time of the event and that reminder is set to trigger user to leave house. 
+    Assume that we record actual time of the event and that reminder is set to trigger user to leave house.
         A default extension is allowed afterwards to allow for the addtional time returning home.
 
 User residency from joint calendar
@@ -29,7 +29,7 @@ logging_setup.initialize_logger('logs', logging.INFO, True)
 from heatmisercontroller import setup as hms
 
 import pytz
-from user_defn import jointcalendarid, ian_params, izzy_params
+from user_defn import ian_params, izzy_params
 from google_cal_utils import gcal_processor, get_users_states, select_temperatures, filter_temperatures_for_stat
 
 # Setup the Calendar API
