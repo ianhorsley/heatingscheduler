@@ -148,13 +148,12 @@ class gcal_processor(object):
         if not events:
             logging.info('%s No upcoming events found.'%calendar_id)
         for event in events:
-            print "next event", event
             start = self._parse_google_dateortime(event['start'].get('dateTime', event['start'].get('date')))
             end = self._parse_google_dateortime(event['end'].get('dateTime', event['end'].get('date')))
             
             # process any reminders, considering defaults, etc.
             if self.USE_REMINDERS:
-                if event['reminders']['useDefault']:
+                if 'reminders' not in event or event['reminders']['useDefault']:
                     reminder = default_reminder_time
                 elif 'overriders' in event['reminders']:
                     reminder = self._get_shortest_reminder_time(event['reminders']['overrides'])
@@ -166,7 +165,7 @@ class gcal_processor(object):
             end += datetime.timedelta(minutes=self.TIME_TO_GET_HOME)
 
             length = end - start
-            summary = event['summary']
+            summary = event['summary'] if 'summary' in event else 'unlabelled'
 
             ##Residency
             
