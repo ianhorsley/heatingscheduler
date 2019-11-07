@@ -236,6 +236,8 @@ class gcal_processor(object):
     def filter_events(events, user):
         #takes a list of events and filters for a single user
         #returns only single user in result
+        print "evs", events
+        print "user", user
         new_list = []
         for event in events:
             if user in event['users']:
