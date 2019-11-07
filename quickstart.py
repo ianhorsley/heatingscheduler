@@ -140,7 +140,7 @@ for stat_name, controllersettings in statlist.iteritems():
 
 # create a new XML file with the results
 mydata = ET.tostring(data)
-myfile = open("items2.xml", "w")
+myfile = open(outfilexml, "w")
 myfile.write(mydata)
 
 ### following code for the processing code in myversion.

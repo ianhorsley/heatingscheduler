@@ -1,6 +1,8 @@
 
 import datetime
 
+outfilexml = 'items2.xml'
+
 izzy_params = {
               'name': 'IZZY',
               'calendar_id_list': ['INSERT'],
