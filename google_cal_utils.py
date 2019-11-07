@@ -148,6 +148,7 @@ class gcal_processor(object):
         if not events:
             logging.info('%s No upcoming events found.'%calendar_id)
         for event in events:
+            print "next event", event
             start = self._parse_google_dateortime(event['start'].get('dateTime', event['start'].get('date')))
             end = self._parse_google_dateortime(event['end'].get('dateTime', event['end'].get('date')))
             
