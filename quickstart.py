@@ -126,17 +126,17 @@ for itemid, values in gcal.calendarAccess.iteritems():
 
 stats = ET.SubElement(data, 'stats') #should contain list of stats and last update time, and entries required
 for stat_name, controllersettings in statlist.iteritems():
-  #for stat in stats_defn.StatList:
-  #stat_name = stat[stats_defn.SL_SHORT_NAME]
-  stat = ET.SubElement(stats, 'stat')
-  createsublement(stat, 'name', stat_name)
-  createsublement(stat, 'lastchanged', 'timethatthedataforthisstatelastchanged')
+    #for stat in stats_defn.StatList:
+    #stat_name = stat[stats_defn.SL_SHORT_NAME]
+    stat = ET.SubElement(stats, 'stat')
+    createsublement(stat, 'name', stat_name)
+    createsublement(stat, 'lastchanged', 'timethatthedataforthisstatelastchanged')
 
-  items = ET.SubElement(stat, 'targets')
-  for temp in select_temperatures(state_list,stat_name):
-    nextitem = ET.SubElement(items, 'target')
-    nextitem.set('time',temp['time'].astimezone(pytz.utc).isoformat())
-    nextitem.text = str(temp['temp'])
+    items = ET.SubElement(stat, 'targets')
+    for temp in select_temperatures(state_list,stat_name):
+        nextitem = ET.SubElement(items, 'target')
+        nextitem.set('time',temp['time'].astimezone(pytz.utc).isoformat())
+        nextitem.text = str(temp['temp'])
 
 # create a new XML file with the results
 mydata = ET.tostring(data)

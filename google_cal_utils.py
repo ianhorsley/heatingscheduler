@@ -81,7 +81,10 @@ class gcal_processor(object):
                                         'lastQueried':datetime.datetime.now()
                                         }
         
-        logging.info("Calender %s queried at %s, and last updated %s" % (event_list_results.get('summary'),datetime.datetime.now().strftime("%m-%d %H:%M"), event_list_results.get('updated')))
+        logging.info("Calender %s queried at %s, and last updated %s" % (event_list_results.get('summary'),
+                                                                datetime.datetime.now().strftime("%m-%d %H:%M"), 
+                                                                event_list_results.get('updated'))
+                                                                )
         
     DEFAULT_REMINDER_TIME = 20
     MAXIMUM_REMINDER_TIME = 120
