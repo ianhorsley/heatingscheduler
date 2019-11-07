@@ -64,7 +64,7 @@ class gcal_processor(object):
         self.timeMax = rfc339formant(self.start_time + datetime.timedelta(days=days_after) )
 
     def _get_events_list(self, calendar_id):
-        if (not self.timeMin == None and not self.timeMax == None and not self.service == None):
+        if ( self.timeMin is not None and self.timeMax is not None and self.service is not None):
             return self.service.events().list(calendarId=calendar_id, timeMin=self.timeMin,
                                                                                 timeMax=self.timeMax,
                                                                                 maxResults=200, singleEvents=True,
