@@ -75,7 +75,11 @@ class gcal_processor(object):
     def _record_calendar_access_time(self, calendar_id, event_list_results):
         """Records calendar access time against calendar_id
         Array contains, summary and updated entires from event list and query time as now."""
-        self.calendarAccess[calendar_id] = {'name':event_list_results.get('summary'),'lastUpdated':event_list_results.get('updated'),'lastQueried':datetime.datetime.now()}
+        self.calendarAccess[calendar_id] = {
+                                        'name':event_list_results.get('summary'),
+                                        'lastUpdated':event_list_results.get('updated'),
+                                        'lastQueried':datetime.datetime.now()
+                                        }
         
         logging.info("Calender %s queried at %s, and last updated %s" % (event_list_results.get('summary'),datetime.datetime.now().strftime("%m-%d %H:%M"), event_list_results.get('updated')))
         
@@ -296,9 +300,9 @@ class gcal_processor(object):
                 #print ("day shift")
                 event = baseevent.copy()
                 event['start'] = min(start_datetime + params['default_wake'],
-                                                                                             min(shifts_complete[0]['start'],start_events_today) - params['minimum_wake_before_event'])
+                                        min(shifts_complete[0]['start'],start_events_today) - params['minimum_wake_before_event'])
                 event['end'] = max(start_datetime + params['default_sleep'],
-                                                                                             max(shifts_complete[0]['end'],stop_events_today) + params['minimum_wake_after_event'])
+                                        max(shifts_complete[0]['end'],stop_events_today) + params['minimum_wake_after_event'])
                 #print(event)
                 events_awake.append(event)
                 
@@ -310,7 +314,7 @@ class gcal_processor(object):
                 events_awake.append(event)
                 event = baseevent.copy()
                 event['start'] = min(shifts_starting[0]['start'] - params['minimum_wake_before_event'],
-                                                                                                shifts_ending[0]['end'] + params['minimum_wake_after_event'] + params['sleep_night_to_night'])
+                                        shifts_ending[0]['end'] + params['minimum_wake_after_event'] + params['sleep_night_to_night'])
                 event['end'] = end_datetime
                 events_awake.append(event)
                 
@@ -437,7 +441,7 @@ def get_users_states(event_list, params, statlist):
     return state_list
 
 def stringN(number):
-    if number == None:
+    if number is None:
         return " N"
     return str(number)
 
@@ -473,7 +477,7 @@ def roundTime(dt=None, roundTo=60):
      roundTo : Closest number of seconds to round to, default 1 minute.
      Author: Thierry Husson 2012 - Use it as you want but don't blame me.
      """
-     if dt == None : dt = datetime.datetime.now()
+     if dt is None : dt = datetime.datetime.now()
      seconds = (dt.replace(tzinfo=None) - dt.min).seconds
      rounding = (seconds+roundTo/2) // roundTo * roundTo
      return dt + datetime.timedelta(0, rounding-seconds,-dt.microsecond)
@@ -516,7 +520,7 @@ def reduce_temperatures_for_stat(state_list):
             filtered = None
             temp_range = START_TEMP_RANGE
             minutes_range = START_MINUTES_RANGE
-            while filtered == None or len(filtered) > MAXIMUM_STATES_PER_STAT:
+            while filtered is None or len(filtered) > MAXIMUM_STATES_PER_STAT:
                 filtered = filter_temperatures_by_temp(group,temp_range,minutes_range)
                 temp_range += STEP_TEMP_RANGE
                 minutes_range += STEP_MINUTES_RANGE

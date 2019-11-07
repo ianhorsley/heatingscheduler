@@ -107,7 +107,7 @@ import xml.etree.ElementTree as ET
 
 def createsublement(parent, item, text=None):
   subE = ET.SubElement(parent, item)
-  if text != None:
+  if text is not None:
     subE.text = text
   return subE
 
@@ -126,7 +126,7 @@ for itemid, values in gcal.calendarAccess.iteritems():
 
 stats = ET.SubElement(data, 'stats') #should contain list of stats and last update time, and entries required
 for stat_name, controllersettings in statlist.iteritems():
-#for stat in stats_defn.StatList:
+  #for stat in stats_defn.StatList:
   #stat_name = stat[stats_defn.SL_SHORT_NAME]
   stat = ET.SubElement(stats, 'stat')
   createsublement(stat, 'name', stat_name)
