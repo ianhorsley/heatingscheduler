@@ -121,7 +121,9 @@ class gcal_processor(object):
         combined_list = {}
         for calendar_id in calendar_id_list:
             events = self.get_calendar_events(calendar_id, user_list)
+            print "asdf", events
             eventsfiltered = self.filter_events(events, user_list)
+            print "filtered", eventsfiltered
             combined_list = self.combine_event_lists(combined_list,eventsfiltered)
         return combined_list
     
@@ -245,6 +247,9 @@ class gcal_processor(object):
     @staticmethod
     def merge_events(events):
         """takes a sorted (by start time) event list and merges any overlapping or touching events with the same state."""
+        if len(events) < 2:
+            return events
+        
         new_list = [events[0]]
         for i in range(1,len(events)):
             if events[i]['state'] == new_list[-1]['state'] and events[i]['users'] == new_list[-1]['users']:
