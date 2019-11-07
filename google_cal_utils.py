@@ -115,19 +115,17 @@ class gcal_processor(object):
             date = parse_date(inputdatetime)
             return self.localzone.localize(datetime.datetime(date.year, date.month, date.day))
     
-    def get_calendars_events(self, calendar_id_list, user_list=None):
+    def get_calendars_events(self, calendar_id_list, user=None):
         """Get events from multiple calendars, combining and filtering.
         Returns list of dictionaries"""
         combined_list = {}
         for calendar_id in calendar_id_list:
-            events = self.get_calendar_events(calendar_id, user_list)
-            print "asdf", events
-            eventsfiltered = self.filter_events(events, user_list)
-            print "filtered", eventsfiltered
-            combined_list = self.combine_event_lists(combined_list,eventsfiltered)
+            events = self.get_calendar_events(calendar_id, user)
+            eventsfiltered = self.filter_events(events, user)
+            combined_list = self.combine_event_lists(combined_list, eventsfiltered)
         return combined_list
     
-    def get_calendar_events(self, calendar_id, default_user_list=None):
+    def get_calendar_events(self, calendar_id, default_user=None):
         """Get events from a calendar, filtering, extending by reminders and processing for state.
         Returns list of dictionaries"""
         #assume that we record actual time of the event and that reminder is set to trigger user to leave house.
@@ -176,7 +174,7 @@ class gcal_processor(object):
 
                     if len(matching_states) <= 1: #only process if less than two states, otherwise warn
                         if len(matching_users) == 0: #if doesn't have any users attach default
-                            matching_users = default_user_list
+                            matching_users = default_user
                         if len(matching_states) == 1: print "ddd", len(matching_states) == 1, not matching_states[0] == 'IGNORE'
                         if len(matching_states) == 1 and not matching_states[0] == 'IGNORE': #if it has a state record this.
                             event_list.append({
@@ -211,9 +209,9 @@ class gcal_processor(object):
     def get_users_events(self, params):
         """Get all the events for a user."""
 
-        events = self.get_calendars_events(params['calendar_id_list'], [params['name']])
+        events = self.get_calendars_events(params['calendar_id_list'], params['name'])
 
-        events_work = self.get_calendar_events(params['calendar_id_work'], [params['name']])
+        events_work = self.get_calendar_events(params['calendar_id_work'], params['name'])
 
         events_awake = self.get_awake_events(events_work, events, params, self.start_time, 10)
 
@@ -236,8 +234,6 @@ class gcal_processor(object):
     def filter_events(events, user):
         #takes a list of events and filters for a single user
         #returns only single user in result
-        print "evs", events
-        print "user", user
         new_list = []
         for event in events:
             if user in event['users']:
