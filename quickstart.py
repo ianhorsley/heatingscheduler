@@ -30,17 +30,18 @@ from heatmisercontroller import setup as hms
 
 import pytz
 from user_defn import ian_params, izzy_params, outfilexml
-from google_cal_utils import gcal_processor, get_users_states, select_temperatures, filter_temperatures_for_stat
+from google_cal_utils import gcal_processor
+from user_state_utils import get_users_states, select_temperatures, filter_temperatures_for_stat
 
 # Setup the Calendar API
 gcal = gcal_processor('https://www.googleapis.com/auth/calendar.readonly', 'service.json')
-service = gcal.connect_google()
+service = gcal.connector.connect_google()
 
 # Setup time variables
-gcal.set_time_zone('Europe/London') # Not local server to house so set the local time zone
-timeMidnight = gcal.set_start_time_midnight_local()
+gcal.connector.set_time_zone('Europe/London') # Not local server to house so set the local time zone
+timeMidnight = gcal.connector.set_start_time_midnight_local()
 #now = gcal.setuptime
-gcal.set_search_time_range(5,10) # Days before and days after today. Needs the history for events that started in the past.
+gcal.connector.set_search_time_range(5,10) # Days before and days after today. Needs the history for events that started in the past.
 
 # Get the list of rooms/zones from the stats on heatmiser network
 try:
@@ -80,7 +81,6 @@ for name, controllersettings in statlist.iteritems():
 
 state_list = []
 for trigger in combined_state_list:
-  print(trigger)
   temp[trigger['name']] = trigger
   temp['time'] = trigger['time']
 
@@ -116,11 +116,11 @@ def createsublement(parent, item, text=None):
 # create the file structure
 data = ET.Element('data')
 other = ET.SubElement(data, 'other')
-createsublement(other, 'calendarslastupdated', gcal.get_last_calendar_update_time().astimezone(pytz.utc).isoformat())
-createsublement(other, 'calendarslastpolled', gcal.get_last_calendar_poll_time().isoformat())
+createsublement(other, 'calendarslastupdated', gcal.connector.get_last_calendar_update_time().astimezone(pytz.utc).isoformat())
+createsublement(other, 'calendarslastpolled', gcal.connector.get_last_calendar_poll_time().isoformat())
 
 cals = ET.SubElement(data, 'calendars') #should contain list of calendars and last update time
-for itemid, values in gcal.calendarAccess.iteritems():
+for itemid, values in gcal.connector.calendarAccess.iteritems():
   stat = ET.SubElement(cals, 'calendar')
   createsublement(stat, 'name', values['name'])
   createsublement(stat, 'id', itemid)

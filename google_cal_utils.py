@@ -1,20 +1,11 @@
 
-from apiclient.discovery import build
-from google.oauth2 import service_account
-import rfc3339
-
-from pythonrfc3339 import parse_datetime, parse_date#, datetime_re, make_re, UTC_TZ, date_re_str, time_re_str, date_re
 import datetime
-import pytz
 
 import logging
 
 #from heatmisercontroller import stats_defn
 
-ukest = pytz.timezone('Europe/London')
-
-def rfc339formant(inputdate):
-    return rfc3339.format(inputdate, utc=True, use_system_timezone=False)
+from google_cal_connector import GoogleConnector
 
 class gcal_processor(object):
     # Setup the Calendar API
@@ -23,84 +14,15 @@ class gcal_processor(object):
     timeMin = None
     timeMax = None
     service = None
-    localzone = None
-    calendarAccess = {}
 
     def __init__(self, scope, cred_file):
-        self.scope = scope
-        self.cred_file = cred_file
-        #self.localzone = pytz.timezone('Europe/London')
-
-    def connect_google(self):
-        creds = service_account.Credentials.from_service_account_file(self.cred_file, scopes=[self.scope])
-        self.service = build('calendar', 'v3', credentials=creds)
-        return self.service
-    
-    def set_time_zone(self, timezonestring):
-        #stores a local time zone, if the server processing this script isn't local to home being monitored^M
-        self.localzone = pytz.timezone(timezonestring)
-        
-    def set_start_time_midnight_local(self):
-        #set the start time for the results of interest
-        #any events starting after or finishing after this time will be included in results
-        if self.localzone is not None:
-            now = datetime.datetime.now(self.localzone)
-        else:
-            now = datetime.datetime.now()
-        self.setuptime = now
-        midnight_without_tzinfo = datetime.datetime(year=now.year, month=now.month, day=now.day)
-        midnight_with_tzinfo = self.localzone.localize(midnight_without_tzinfo)
-        self.start_time = midnight_with_tzinfo.astimezone(pytz.utc) #start of today from local time, in UTC
-
-        return self.start_time
-
-    def set_search_time_range(self,days_before,days_after):
-        #set the timeMin and timeMax when getting data from the calendar.
-        #input in days
-        self.days_before = days_before
-        self.days_after = days_after
-        
-        self.timeMin = rfc339formant(self.start_time + datetime.timedelta(days=-days_before) )
-        self.timeMax = rfc339formant(self.start_time + datetime.timedelta(days=days_after) )
-
-    def _get_events_list(self, calendar_id):
-        if ( self.timeMin is not None and self.timeMax is not None and self.service is not None):
-            return self.service.events().list(calendarId=calendar_id, timeMin=self.timeMin,
-                                                                                timeMax=self.timeMax,
-                                                                                maxResults=200, singleEvents=True,
-                                                                                orderBy='startTime').execute()
-        else:
-            logging.error("Times or service note connected.")
-            
-    def _record_calendar_access_time(self, calendar_id, event_list_results):
-        """Records calendar access time against calendar_id
-        Array contains, summary and updated entires from event list and query time as now."""
-        self.calendarAccess[calendar_id] = {
-                                        'name':event_list_results.get('summary'),
-                                        'lastUpdated':event_list_results.get('updated'),
-                                        'lastQueried':datetime.datetime.now()
-                                        }
-        
-        logging.info("Calender %s queried at %s, and last updated %s" % (event_list_results.get('summary'),
-                                                                datetime.datetime.now().strftime("%m-%d %H:%M"), 
-                                                                event_list_results.get('updated'))
-                                                                )
+        self.connector = GoogleConnector(scope, cred_file)
         
     DEFAULT_REMINDER_TIME = 20
     MAXIMUM_REMINDER_TIME = 120
     USE_REMINDERS = True #if true extends start of events by the reminder time.
     TIME_TO_GET_HOME = 20
     
-    def get_last_calendar_update_time(self):
-        
-        dates = [self._parse_google_dateortime(x['lastUpdated']) for _, x in self.calendarAccess.iteritems()]
-        return max(dates)
-        
-    def get_last_calendar_poll_time(self):
-        
-        dates = [x['lastQueried'] for _, x in self.calendarAccess.iteritems()]
-        return max(dates)
-
     def _get_shortest_reminder_time(self, reminder_list):
         """If there are multiple reminders select the closest to the event start. Subject to a maximum reminder time.
         If there are no remindaers set use default.
@@ -113,14 +35,6 @@ class gcal_processor(object):
             for rem in reminder_list:
                 reminder_time = min(reminder_time, rem['minutes'])
             return reminder_time
-            
-    def _parse_google_dateortime(self, inputdatetime):
-        """Try parsing as a datetime, otherwise try parsing as a date."""
-        try:
-            return parse_datetime(inputdatetime)
-        except ValueError:
-            date = parse_date(inputdatetime)
-            return self.localzone.localize(datetime.datetime(date.year, date.month, date.day))
     
     def get_calendars_events(self, calendar_id_list, user=None):
         """Get events from multiple calendars, combining and filtering.
@@ -139,12 +53,11 @@ class gcal_processor(object):
         #gets the events from a calendar extending by reminder time forwards and a default afterwards.
         #users default user list if no list included in name.
 
-        events_result = self._get_events_list(calendar_id)
+        events_result = self.connector.get_events_list(calendar_id)
         
         calendar_name = events_result.get('summary')
         logging.debug('Getting events from ' + calendar_name)
-             
-        self._record_calendar_access_time(calendar_id,events_result)
+
         default_reminder_time = self._get_shortest_reminder_time(events_result.get('defaultReminders'))
 
         events = events_result.get('items', [])
@@ -153,8 +66,8 @@ class gcal_processor(object):
         if not events:
             logging.info('%s No upcoming events found.'%calendar_id)
         for event in events:
-            start = self._parse_google_dateortime(event['start'].get('dateTime', event['start'].get('date')))
-            end = self._parse_google_dateortime(event['end'].get('dateTime', event['end'].get('date')))
+            start = self.connector.parse_google_dateortime(event['start'].get('dateTime', event['start'].get('date')))
+            end = self.connector.parse_google_dateortime(event['end'].get('dateTime', event['end'].get('date')))
             
             # process any reminders, considering defaults, etc.
             if self.USE_REMINDERS:
@@ -174,7 +87,7 @@ class gcal_processor(object):
 
             ##Residency
             
-            if ( self.start_time < end ): #ignore entries that finished before start of today.
+            if ( self.connector.start_time < end ): #ignore entries that finished before start of today.
                 
                     matching_states = [s for s in self.residency_states if s in summary.upper()]
                     matching_users = [s for s in self.users if s in summary.upper()]
@@ -220,7 +133,7 @@ class gcal_processor(object):
 
         events_work = self.get_calendar_events(params['calendar_id_work'], params['name'])
 
-        events_awake = self.get_awake_events(events_work, events, params, self.start_time, 10)
+        events_awake = self.get_awake_events(events_work, events, params, self.connector.start_time, 10)
 
         combined_list = self.combine_event_lists(events_awake, events, events_work)
 
@@ -228,7 +141,7 @@ class gcal_processor(object):
 
         for i in combined_list:
             user_lst = ', '.join(i['users'])
-            logging.debug('%s %s %s %s %s, %s'%(i['start'].astimezone(self.localzone).strftime("%m-%d %H:%M"), i['end'].astimezone(self.localzone).strftime("%m-%d %H:%M"), i['state'].ljust(5), user_lst,i['calendar_name'].ljust(10), i['summary'] ))
+            logging.debug('%s %s %s %s %s, %s'%(i['start'].astimezone(self.connector.localzone).strftime("%m-%d %H:%M"), i['end'].astimezone(self.connector.localzone).strftime("%m-%d %H:%M"), i['state'].ljust(5), user_lst,i['calendar_name'].ljust(10), i['summary'] ))
         return combined_list
 
     def combine_event_lists(self, *args):
@@ -354,208 +267,3 @@ class gcal_processor(object):
                 
         return self.merge_events(events_awake)
 
-def get_users_states(event_list, params, statlist):
-    #tasks full list of events (sorting not important) for a user.
-    #Converts to a trigger list (sorted)
-    #Converts to state list (handling an overlapping) including temperatures
-
-    trigger_list = []
-    for event in event_list:
-        trigger_list.append({'time':event['start'],'state':event['state'],'trigger':1})
-        trigger_list.append({'time':event['end'],'state':event['state'],'trigger':-1})
-        if event['state'] == 'AWAKE':
-            trigger_list.append({'time':event['start'],'state':'ACTIVE_SLEEP_ROOM','trigger':1})
-            trigger_list.append({'time':event['start'] + params['active_time_sleep_room'],'state':'ACTIVE_SLEEP_ROOM','trigger':-1})
-            trigger_list.append({'time':event['end'] - params['active_time_sleep_room'],'state':'ACTIVE_SLEEP_ROOM','trigger':1})
-            trigger_list.append({'time':event['end'],'state':'ACTIVE_SLEEP_ROOM','trigger':-1})
-        elif event['state'] == 'HOME':
-            trigger_list.append({'time':event['start'],'state':'ACTIVE','trigger':1})
-            trigger_list.append({'time':event['start'] + params['active_time'],'state':'ACTIVE','trigger':-1})
-            trigger_list.append({'time':event['end'] - params['active_time'],'state':'ACTIVE','trigger':1})
-            trigger_list.append({'time':event['end'],'state':'ACTIVE','trigger':-1})
-        elif event['state'] == 'OUT' or event['state'] == 'AWAY':
-            trigger_list.append({'time':event['start'] - params['active_time'],'state':'ACTIVE','trigger':1})
-            trigger_list.append({'time':event['start'],'state':'ACTIVE','trigger':-1})
-            trigger_list.append({'time':event['end'],'state':'ACTIVE','trigger':1})
-            trigger_list.append({'time':event['end'] + params['active_time'],'state':'ACTIVE','trigger':-1})
-
-    trigger_list.sort(key=lambda x:x['time'])
-
-    temp = {}
-    temp['name'] = params['name']
-    temp['HOME'] = temp['AWAY'] = temp['OUT'] = temp['AWAKE'] = temp['ACTIVE'] = temp['ACTIVE_SLEEP_ROOM'] = 0
-    temp['user'] = 'SLEEP'
-    temp['inuse_room'] = temp['sleep_room'] = None
-    #print(statlist)
-    for name, _ in statlist.iteritems():
-        temp[name] = None
-
-    state_list = []
-    for trigger in trigger_list:
-        temp[trigger['state']] += trigger['trigger']
-        temp['time'] = trigger['time']
-
-        if temp['HOME'] > 0:
-            temp_resident = 'HOME'
-        elif temp['AWAY'] > 0 or temp['OUT'] > 0:
-            temp_resident = 'AWAY'
-        else:
-            temp_resident = params['default_residency']
-
-        if temp_resident == 'AWAY':
-            temp['user'] = 'AWAY'
-            temp['inuse_room'] = None
-            temp['sleep_room'] = None
-        elif temp['AWAKE'] == 0:
-            temp['user'] = 'SLEEP'
-            temp['inuse_room'] = None
-            temp['sleep_room'] = params['temp_asleep']
-        elif temp['ACTIVE_SLEEP_ROOM'] > 0:
-            temp['user'] = 'ACTIVE_SLEEP_ROOM'
-            temp['inuse_room'] = params['temp_active']
-            temp['sleep_room'] = params['temp_active']
-        elif temp['ACTIVE'] > 0:
-            temp['user'] = 'ACTIVE'
-            temp['inuse_room'] = params['temp_active']
-            temp['sleep_room'] = None
-        else:
-            temp['user'] = 'INACTIVE'
-            temp['inuse_room'] = params['temp_inactive']
-            temp['sleep_room'] = None
-
-        for room in params['awake_rooms']:
-            temp[room] = temp['inuse_room']
-
-        if params['sleep_room'] in params['awake_rooms']:
-            temp[params['sleep_room']] = max(temp['sleep_room'], temp['inuse_room'])
-        else:
-            temp[params['sleep_room']] = temp['sleep_room']
-        
-        if len(state_list) == 0 or (temp['time'] != state_list[-1]['time'] and temp['user'] != state_list[-1]['user']):
-            state_list.append(temp.copy())
-        elif temp['user'] != state_list[-1]['user']:
-            state_list[-1] = temp.copy()
-         
-    logging.debug("merged %s state list"%params['name'])
-    for i in state_list:
-        stat_temps = ' '.join(stringN(i[e]) for e, _ in statlist.iteritems())
-        logging.debug( '%s %s, %s %s, %s other %i %i %i %i %i %i' % (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['user'].ljust(17), stringN(i['inuse_room']), stringN(i['sleep_room']), stat_temps, i['HOME'], i['AWAY'], i['OUT'], i['AWAKE'], i['ACTIVE'], i['ACTIVE_SLEEP_ROOM']) )
-
-    return state_list
-
-def stringN(number):
-    if number is None:
-        return " N"
-    return str(number)
-
-MINIMUM_TIME_AT_TEMP = 15 #in minutes
-
-def select_temperatures(state_list,temp_name):
-    #pulls out the temperature data for a room.
-    #filters out where two temps the same
-    #or if time difference is less than MINIMUM_TIME_AT_TEMP moves temperature forwards
-    temps = []
-    temp = {}
-    temp['time'] = temp['temp'] = 0
-
-    for state in state_list:
-        temp['time'] = state['time']
-        temp['temp'] = state[temp_name]
-
-        if len(temps) == 0 or (temp['temp'] != temps[-1]['temp'] and temp['time'] >= temps[-1]['time'] + datetime.timedelta(minutes=MINIMUM_TIME_AT_TEMP)):
-            temps.append(temp.copy())
-        elif len(temps) > 1:
-            #else, the time between two events to short, move the later temp forwards (note this also lets through if new temp is same as last, but does no harm
-            #but if only one temp don't check for doubles
-            if temps[-2]['temp'] != temp['temp']:
-                temps[-1]['temp'] = temp['temp']
-            else: #remove entries that would have matching temps
-                del temps[-1]
-
-    return temps
-
-def roundTime(dt=None, roundTo=60):
-     """Round a datetime object to any time laps in seconds
-     dt : datetime.datetime object, default now.
-     roundTo : Closest number of seconds to round to, default 1 minute.
-     Author: Thierry Husson 2012 - Use it as you want but don't blame me.
-     """
-     if dt is None : dt = datetime.datetime.now()
-     seconds = (dt.replace(tzinfo=None) - dt.min).seconds
-     rounding = (seconds+roundTo/2) // roundTo * roundTo
-     return dt + datetime.timedelta(0, rounding-seconds,-dt.microsecond)
-
-def roundToNearestInt(inputnumber, nearest):
-    return int(round(inputnumber/nearest, 0) * nearest)
-
-MAXIMUM_STATES_PER_STAT = 4
-MAXIMUM_DAYS_PER_STAT = 7
-TIME_GRANULARITY = 15 #minutes
-TEMP_GRANULARITY = 1 #degrees
-START_TEMP_RANGE = 1
-STEP_TEMP_RANGE = 0.5
-START_MINUTES_RANGE = 30
-STEP_MINUTES_RANGE = 30
-
-def filter_temperatures_for_stat(state_list,timeStart):
-
-    state_list = reduce_temperatures_for_stat(state_list)
-
-    endoftime = timeStart + datetime.timedelta(days=MAXIMUM_DAYS_PER_STAT)
-
-    return [{'time':roundTime(x['time'],60*TIME_GRANULARITY),'temp':roundToNearestInt(x['temp'],TEMP_GRANULARITY)} for x in state_list if x['time'] >= timeStart and x['time'] < endoftime]
-
-def reduce_temperatures_for_stat(state_list):
-
-    values = set(map(lambda x:x['time'].astimezone(ukest).date(), state_list))
-    grouped_state_list = [[y for y in state_list if y['time'].astimezone(ukest).date()==x] for x in values]
-
-    temps = []
-
-    for group in grouped_state_list:
-        if len(group) <= MAXIMUM_STATES_PER_STAT:
-            #print("No filter needed", group[0])
-            temps = temps + group
-        else:
-            #print("Filtering needed", group[0])
-            #for i in group:
-            #    print( i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['temp'])
-            filtered = None
-            temp_range = START_TEMP_RANGE
-            minutes_range = START_MINUTES_RANGE
-            while filtered is None or len(filtered) > MAXIMUM_STATES_PER_STAT:
-                filtered = filter_temperatures_by_temp(group,temp_range,minutes_range)
-                temp_range += STEP_TEMP_RANGE
-                minutes_range += STEP_MINUTES_RANGE
-                if (temp_range > 15):
-                    logging.warn("WARNING LONG FILTERING")
-            #print("after")
-            #for i in filtered:
-            #    print( i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['temp'])
-            temps = temps + filtered
-
-    temps.sort(key=lambda x:x['time'])
-    return temps
-
-
-def filter_temperatures_by_temp(state_list, temp_range, minutes_range):
-    #pulls out the temperature data for a room.
-    #filters out where two temps the same
-    #or if time difference is less than MINIMUM_TIME_AT_TEMP moves temperature forwards
-    temps = []
-    temp = {}
-    temp['time'] = temp['temp'] = 0
-
-    for state in state_list:
-        temp['time'] = state['time']
-        temp['temp'] = state['temp']
-
-        if len(temps) != 0 and abs(temps[-1]['temp'] - temp['temp']) <= temp_range:
-            temps[-1]['temp'] = max(temp['temp'],temps[-1]['temp']) #should improve on and make a weighted average or something more complex.
-        elif len(temps) > 1 and abs(temps[-2]['temp'] - temp['temp']) <= temp_range and temp['time'] - temps[-2]['time']    <= datetime.timedelta(minutes=minutes_range):
-            del temps[-1]
-            temps[-1]['temp'] = max(temp['temp'],temps[-1]['temp'])
-        else:
-            temps.append(temp.copy())
-
-    return temps
