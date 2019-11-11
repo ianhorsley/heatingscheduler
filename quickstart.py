@@ -68,8 +68,10 @@ combined_state_list.sort(key=lambda x:x['time'])
 
 #process states into list of trigger times with temps for each room
 
+#create temp dictionary to hold state as processing triggers.
 temp = {}
 temp['IAN'] = temp['IZZY'] = {'inuse_room':None,'sleep_room':None,'user':'Not Set'}
+#set the room array up for each user to hold users state and temperature demands and for manual rooms store frost temp.
 for name, controllersettings in statlist.iteritems():
   if controllersettings['control_mode'] == 'manual':
     temp[name] = controllersettings['frost_temperature']
@@ -78,6 +80,7 @@ for name, controllersettings in statlist.iteritems():
 
 state_list = []
 for trigger in combined_state_list:
+  print(trigger)
   temp[trigger['name']] = trigger
   temp['time'] = trigger['time']
 
@@ -87,11 +90,12 @@ for trigger in combined_state_list:
 
   if len(state_list) == 0 or temp['time'] != state_list[-1]['time']:
     state_list.append(temp.copy())
-  else:
+  else: #if two triggers for the same time, update the previous state with the additional users information updated
     state_list[-1] = temp.copy()
 
 ukest = pytz.timezone('Europe/London')
 logging.debug("room state tracking")
+logging.debug('Time (m-d H:m) Kit B1 B2 Cons other IanState IzzyState')
 for i in state_list:
   logging.debug('%s %i %i %i %i other %s %s'% (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['Kit'], i['B1'], i['B2'], i['Cons'], i['IAN']['user'].ljust(17), i['IZZY']['user'].ljust(17))   )
 
@@ -100,8 +104,6 @@ kitchen_temps = select_temperatures(state_list,'Kit')
 logging.debug('kitchen')
 for i in kitchen_temps:
   logging.debug('%s %i'%( i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['temp']))
-
-
 
 import xml.etree.ElementTree as ET
 
