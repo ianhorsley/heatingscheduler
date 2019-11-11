@@ -30,33 +30,36 @@ def build_trigger_list(event_list, params):
             trigger_list.extend(calc_event_triggers(event['start'] - params['active_time'],event['start'],'ACTIVE'))
             trigger_list.extend(calc_event_triggers(event['end'],event['end'] + params['active_time'],'ACTIVE'))
 
-    return trigger_list.sort(key=lambda x:x['time'])
+    trigger_list.sort(key=lambda x:x['time'])
+    
+    return trigger_list
 
 def calc_residency(temp, params):
     #determine from state counts where the user is
     #counts reflect the number of active events that idicate a particular state.
     #Presidency, Home, Away, otherwise default.
     if temp['HOME'] > 0:
-        temp_resident = 'HOME'
+        return 'HOME'
     elif temp['AWAY'] > 0 or temp['OUT'] > 0:
-        temp_resident = 'AWAY'
+        return 'AWAY'
     else:
-        temp_resident = params['default_residency']
-        
+        return params['default_residency']
+
 def calc_state(temp_resident, state_counters, params):
     #determine user state and temps from residency and state counters and users parameters
     #return state, inuse temp, sleep temp
     if temp_resident == 'AWAY':
-        return 'AWAY', None, None
+        state = ('AWAY', None, None)
     elif state_counters['AWAKE'] == 0:
-        return 'SLEEP', None, params['temp_asleep']
+        state = ('SLEEP', None, params['temp_asleep'])
     elif state_counters['ACTIVE_SLEEP_ROOM'] > 0:
-        return 'ACTIVE_SLEEP_ROOM', params['temp_active'], params['temp_active']
+        state = ('ACTIVE_SLEEP_ROOM', params['temp_active'], params['temp_active'])
     elif state_counters['ACTIVE'] > 0:
-        return 'ACTIVE', params['temp_active'], None
+        state = ('ACTIVE', params['temp_active'], None)
     else:
-        return 'INACTIVE', params['temp_inactive'], None
-        
+        state = ('INACTIVE', params['temp_inactive'], None)
+    return state
+
 def get_users_states(event_list, params, statlist):
     #takes full list of events (sorting not important) for a user.
     #Converts to a trigger list (sorted)
@@ -98,7 +101,7 @@ def get_users_states(event_list, params, statlist):
             state_list.append(temp.copy())
         elif temp['user'] != state_list[-1]['user']:
             state_list[-1] = temp.copy()
-        
+
     logging.debug("merged %s state list"%params['name'])
     for i in state_list:
         stat_temps = ' '.join(stringN(i[e]) for e, _ in statlist.iteritems())

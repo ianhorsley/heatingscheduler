@@ -88,11 +88,9 @@ class GoogleConnector(object):
             return self.localzone.localize(datetime.datetime(date.year, date.month, date.day))
 
     def get_last_calendar_update_time(self):
-        
         dates = [self.parse_google_dateortime(x['lastUpdated']) for _, x in self.calendarAccess.iteritems()]
         return max(dates)
 
     def get_last_calendar_poll_time(self):
-
         dates = [x['lastQueried'] for _, x in self.calendarAccess.iteritems()]
         return max(dates)

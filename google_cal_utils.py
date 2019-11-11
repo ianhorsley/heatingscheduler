@@ -202,7 +202,7 @@ class gcal_processor(object):
             shifts_complete = [elem for elem in events_work if elem['length'] < datetime.timedelta(days=1) and elem['start'] >= start_datetime and elem['end'] < end_datetime]
             shifts_starting = [elem for elem in events_work if elem['length'] < datetime.timedelta(days=1) and elem['start'] >= start_datetime and elem['start'] < end_datetime and elem['end'] >= end_datetime]
             shifts_ending = [elem for elem in events_work if elem['length'] < datetime.timedelta(days=1) and elem['start'] < start_datetime and elem['end'] >= start_datetime and elem['end'] < end_datetime]
-            
+
             #find ends or starts today, and the highest and lowest
             events_today = [elem for elem in other_events if elem['length'] < datetime.timedelta(days=1) and (elem['start'] >= start_datetime and elem['start'] < end_datetime or elem['end'] >= start_datetime and elem['end'] < end_datetime)]
             if len(events_today) > 0:
