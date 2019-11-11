@@ -5,74 +5,85 @@ import logging
 
 ukest = pytz.timezone('Europe/London')
 
+def calc_event_triggers(start, end, state):
+    #creates a start and end trigger for event.
+    #trigger is a dictionary of time, state and trigger count
+    #1 means entry to state and -1 leaving state.
+    return [{'time':start,'state':state,'trigger':1},
+        {'time':end,'state':state,'trigger':-1}]
+
+def build_trigger_list(event_list, params):
+    #creates a list of trigger events for the start and end of each state type from event list.
+    #returns list of triggers
+    trigger_list = []
+    for event in event_list:
+        #create triggers for the start and end of each event
+        trigger_list.extend(calc_event_triggers(event['start'],event['end'],event['state']))
+        #add some additional temperatures around events
+        if event['state'] == 'AWAKE':
+            trigger_list.extend(calc_event_triggers(event['start'],event['start'] + params['active_time_sleep_room'],'ACTIVE_SLEEP_ROOM'))
+            trigger_list.extend(calc_event_triggers(event['end'] - params['active_time_sleep_room'],event['end'],'ACTIVE_SLEEP_ROOM'))
+        elif event['state'] == 'HOME':
+            trigger_list.extend(calc_event_triggers(event['start'],event['start'] + params['active_time'],'ACTIVE'))
+            trigger_list.extend(calc_event_triggers(event['end'] - params['active_time'],event['end'],'ACTIVE'))
+        elif event['state'] == 'OUT' or event['state'] == 'AWAY':
+            trigger_list.extend(calc_event_triggers(event['start'] - params['active_time'],event['start'],'ACTIVE'))
+            trigger_list.extend(calc_event_triggers(event['end'],event['end'] + params['active_time'],'ACTIVE'))
+
+    return trigger_list.sort(key=lambda x:x['time'])
+
+def calc_residency(temp, params):
+    #determine from state counts where the user is
+    #counts reflect the number of active events that idicate a particular state.
+    #Presidency, Home, Away, otherwise default.
+    if temp['HOME'] > 0:
+        temp_resident = 'HOME'
+    elif temp['AWAY'] > 0 or temp['OUT'] > 0:
+        temp_resident = 'AWAY'
+    else:
+        temp_resident = params['default_residency']
+        
+def calc_state(temp_resident, state_counters, params):
+    #determine user state and temps from residency and state counters and users parameters
+    #return state, inuse temp, sleep temp
+    if temp_resident == 'AWAY':
+        return 'AWAY', None, None
+    elif state_counters['AWAKE'] == 0:
+        return 'SLEEP', None, params['temp_asleep']
+    elif state_counters['ACTIVE_SLEEP_ROOM'] > 0:
+        return 'ACTIVE_SLEEP_ROOM', params['temp_active'], params['temp_active']
+    elif state_counters['ACTIVE'] > 0:
+        return 'ACTIVE', params['temp_active'], None
+    else:
+        return 'INACTIVE', params['temp_inactive'], None
+        
 def get_users_states(event_list, params, statlist):
-    #tasks full list of events (sorting not important) for a user.
+    #takes full list of events (sorting not important) for a user.
     #Converts to a trigger list (sorted)
     #Converts to state list (handling an overlapping) including temperatures
 
-    trigger_list = []
-    for event in event_list:
-        trigger_list.append({'time':event['start'],'state':event['state'],'trigger':1})
-        trigger_list.append({'time':event['end'],'state':event['state'],'trigger':-1})
-        if event['state'] == 'AWAKE':
-            trigger_list.append({'time':event['start'],'state':'ACTIVE_SLEEP_ROOM','trigger':1})
-            trigger_list.append({'time':event['start'] + params['active_time_sleep_room'],'state':'ACTIVE_SLEEP_ROOM','trigger':-1})
-            trigger_list.append({'time':event['end'] - params['active_time_sleep_room'],'state':'ACTIVE_SLEEP_ROOM','trigger':1})
-            trigger_list.append({'time':event['end'],'state':'ACTIVE_SLEEP_ROOM','trigger':-1})
-        elif event['state'] == 'HOME':
-            trigger_list.append({'time':event['start'],'state':'ACTIVE','trigger':1})
-            trigger_list.append({'time':event['start'] + params['active_time'],'state':'ACTIVE','trigger':-1})
-            trigger_list.append({'time':event['end'] - params['active_time'],'state':'ACTIVE','trigger':1})
-            trigger_list.append({'time':event['end'],'state':'ACTIVE','trigger':-1})
-        elif event['state'] == 'OUT' or event['state'] == 'AWAY':
-            trigger_list.append({'time':event['start'] - params['active_time'],'state':'ACTIVE','trigger':1})
-            trigger_list.append({'time':event['start'],'state':'ACTIVE','trigger':-1})
-            trigger_list.append({'time':event['end'],'state':'ACTIVE','trigger':1})
-            trigger_list.append({'time':event['end'] + params['active_time'],'state':'ACTIVE','trigger':-1})
+    trigger_list = build_trigger_list(event_list, params) #convert events to list of starts/ends
 
-    trigger_list.sort(key=lambda x:x['time'])
-
+    #setup temp variable to store state
     temp = {}
     temp['name'] = params['name']
-    temp['HOME'] = temp['AWAY'] = temp['OUT'] = temp['AWAKE'] = temp['ACTIVE'] = temp['ACTIVE_SLEEP_ROOM'] = 0
     temp['user'] = 'SLEEP'
     temp['inuse_room'] = temp['sleep_room'] = None
+    #counter for each state to handle multiple overlapping states.
+    state_counters = {'HOME':0, 'AWAY':0, 'OUT':0, 'AWAKE':0, 'ACTIVE':0, 'ACTIVE_SLEEP_ROOM':0}
+    
     #print(statlist)
     for name, _ in statlist.iteritems():
         temp[name] = None
 
     state_list = []
     for trigger in trigger_list:
-        temp[trigger['state']] += trigger['trigger']
+        state_counters[trigger['state']] += trigger['trigger']
         temp['time'] = trigger['time']
 
-        if temp['HOME'] > 0:
-            temp_resident = 'HOME'
-        elif temp['AWAY'] > 0 or temp['OUT'] > 0:
-            temp_resident = 'AWAY'
-        else:
-            temp_resident = params['default_residency']
+        temp_resident = calc_residency(state_counters, params) #is user in?
 
-        if temp_resident == 'AWAY':
-            temp['user'] = 'AWAY'
-            temp['inuse_room'] = None
-            temp['sleep_room'] = None
-        elif temp['AWAKE'] == 0:
-            temp['user'] = 'SLEEP'
-            temp['inuse_room'] = None
-            temp['sleep_room'] = params['temp_asleep']
-        elif temp['ACTIVE_SLEEP_ROOM'] > 0:
-            temp['user'] = 'ACTIVE_SLEEP_ROOM'
-            temp['inuse_room'] = params['temp_active']
-            temp['sleep_room'] = params['temp_active']
-        elif temp['ACTIVE'] > 0:
-            temp['user'] = 'ACTIVE'
-            temp['inuse_room'] = params['temp_active']
-            temp['sleep_room'] = None
-        else:
-            temp['user'] = 'INACTIVE'
-            temp['inuse_room'] = params['temp_inactive']
-            temp['sleep_room'] = None
+        temp['user'], temp['inuse_room'], temp['sleep_room'] = calc_state(temp_resident, state_counters, params) #users state and room needs
 
         for room in params['awake_rooms']:
             temp[room] = temp['inuse_room']
@@ -82,6 +93,7 @@ def get_users_states(event_list, params, statlist):
         else:
             temp[params['sleep_room']] = temp['sleep_room']
         
+        temp['counters'] = state_counters.copy() #store counters in temp
         if len(state_list) == 0 or (temp['time'] != state_list[-1]['time'] and temp['user'] != state_list[-1]['user']):
             state_list.append(temp.copy())
         elif temp['user'] != state_list[-1]['user']:
@@ -95,7 +107,8 @@ def get_users_states(event_list, params, statlist):
                                                                 stringN(i['inuse_room']),
                                                                 stringN(i['sleep_room']),
                                                                 stat_temps,
-                                                                i['HOME'], i['AWAY'], i['OUT'], i['AWAKE'], i['ACTIVE'], i['ACTIVE_SLEEP_ROOM']) )
+                                                                i['counters']['HOME'], i['counters']['AWAY'], i['counters']['OUT'],
+                                                                i['counters']['AWAKE'], i['counters']['ACTIVE'], i['counters']['ACTIVE_SLEEP_ROOM']) )
 
     return state_list
 
