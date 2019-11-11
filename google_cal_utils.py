@@ -141,7 +141,11 @@ class gcal_processor(object):
 
         for i in combined_list:
             user_lst = ', '.join(i['users'])
-            logging.debug('%s %s %s %s %s, %s'%(i['start'].astimezone(self.connector.localzone).strftime("%m-%d %H:%M"), i['end'].astimezone(self.connector.localzone).strftime("%m-%d %H:%M"), i['state'].ljust(5), user_lst,i['calendar_name'].ljust(10), i['summary'] ))
+            logging.debug('%s %s %s %s %s, %s'%(i['start'].astimezone(self.connector.localzone).strftime("%m-%d %H:%M"),
+                                            i['end'].astimezone(self.connector.localzone).strftime("%m-%d %H:%M"),
+                                            i['state'].ljust(5),
+                                            user_lst,i['calendar_name'].ljust(10),
+                                            i['summary'] ))
         return combined_list
 
     def combine_event_lists(self, *args):
@@ -207,11 +211,11 @@ class gcal_processor(object):
             else:
                 start_events_today = end_datetime
                 stop_events_today = start_datetime
-                
-            
+
+
             number_of_shifts = [len(shifts_complete),len(shifts_starting), len(shifts_ending)]
             #print(number_of_shifts)
-            
+
             if number_of_shifts == [1, 0, 0]:
                 #print ("day shift")
                 event = baseevent.copy()
@@ -221,7 +225,7 @@ class gcal_processor(object):
                                         max(shifts_complete[0]['end'],stop_events_today) + params['minimum_wake_after_event'])
                 #print(event)
                 events_awake.append(event)
-                
+
             elif number_of_shifts == [0, 1, 1]:
                 #print ("night to night")
                 event = baseevent.copy()
@@ -233,7 +237,7 @@ class gcal_processor(object):
                                         shifts_ending[0]['end'] + params['minimum_wake_after_event'] + params['sleep_night_to_night'])
                 event['end'] = end_datetime
                 events_awake.append(event)
-                
+
             elif number_of_shifts == [0, 1, 0]:
                 #print ("night starting")
                 event = baseevent.copy()
@@ -244,7 +248,7 @@ class gcal_processor(object):
                 event['start'] = shifts_starting[0]['start'] - params['minimum_wake_before_event']
                 event['end'] = end_datetime
                 events_awake.append(event)
-                
+
             elif number_of_shifts == [0, 0, 1]:
                 #print ("night ending")
                 event = baseevent.copy()
@@ -264,6 +268,6 @@ class gcal_processor(object):
                 event['start'] = min(start_datetime + params['default_wake'], start_events_today - params['minimum_wake_before_event'])
                 event['end'] = max(start_datetime + params['default_sleep'], stop_events_today + params['minimum_wake_after_event'])
                 events_awake.append(event)
-                
+
         return self.merge_events(events_awake)
 

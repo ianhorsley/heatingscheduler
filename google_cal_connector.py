@@ -16,7 +16,7 @@ class GoogleConnector(object):
     # Setup the Calendar API
     calendarAccess = {}
     localzone = None
-    
+
     def __init__(self, scope, cred_file):
         self.scope = scope
         self.cred_file = cred_file
@@ -26,11 +26,11 @@ class GoogleConnector(object):
         creds = service_account.Credentials.from_service_account_file(self.cred_file, scopes=[self.scope])
         self.service = build('calendar', 'v3', credentials=creds)
         return self.service
-    
+
     def set_time_zone(self, timezonestring):
         #stores a local time zone, if the server processing this script isn't local to home being monitored^M
         self.localzone = pytz.timezone(timezonestring)
-        
+
     def set_start_time_midnight_local(self):
         #set the start time for the results of interest
         #any events starting after or finishing after this time will be included in results
@@ -50,10 +50,10 @@ class GoogleConnector(object):
         #input in days
         self.days_before = days_before
         self.days_after = days_after
-        
+
         self.timeMin = rfc339format(self.start_time + datetime.timedelta(days=-days_before) )
         self.timeMax = rfc339format(self.start_time + datetime.timedelta(days=days_after) )
-        
+
     def get_events_list(self, calendar_id):
         if ( self.timeMin is not None and self.timeMax is not None and self.service is not None):
             events_result = self.service.events().list(calendarId=calendar_id, timeMin=self.timeMin,
@@ -64,7 +64,7 @@ class GoogleConnector(object):
             return events_result
         else:
             logging.error("Times or service note connected.")
-            
+
     def _record_calendar_access_time(self, calendar_id, event_list_results):
         """Records calendar access time against calendar_id
         Array contains, summary and updated entires from event list and query time as now."""
@@ -75,7 +75,7 @@ class GoogleConnector(object):
                                         }
         
         logging.info("Calender %s queried at %s, and last updated %s" % (event_list_results.get('summary'),
-                                                                datetime.datetime.now().strftime("%m-%d %H:%M"), 
+                                                                datetime.datetime.now().strftime("%m-%d %H:%M"),
                                                                 event_list_results.get('updated'))
                                                                 )
 
@@ -86,15 +86,13 @@ class GoogleConnector(object):
         except ValueError:
             date = parse_date(inputdatetime)
             return self.localzone.localize(datetime.datetime(date.year, date.month, date.day))
-                                                                
+
     def get_last_calendar_update_time(self):
         
         dates = [self.parse_google_dateortime(x['lastUpdated']) for _, x in self.calendarAccess.iteritems()]
         return max(dates)
 
-        
     def get_last_calendar_poll_time(self):
-        
+
         dates = [x['lastQueried'] for _, x in self.calendarAccess.iteritems()]
         return max(dates)
-        

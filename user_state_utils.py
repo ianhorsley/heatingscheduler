@@ -86,11 +86,16 @@ def get_users_states(event_list, params, statlist):
             state_list.append(temp.copy())
         elif temp['user'] != state_list[-1]['user']:
             state_list[-1] = temp.copy()
-         
+        
     logging.debug("merged %s state list"%params['name'])
     for i in state_list:
         stat_temps = ' '.join(stringN(i[e]) for e, _ in statlist.iteritems())
-        logging.debug( '%s %s, %s %s, %s other %i %i %i %i %i %i' % (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['user'].ljust(17), stringN(i['inuse_room']), stringN(i['sleep_room']), stat_temps, i['HOME'], i['AWAY'], i['OUT'], i['AWAKE'], i['ACTIVE'], i['ACTIVE_SLEEP_ROOM']) )
+        logging.debug( '%s %s, %s %s, %s other %i %i %i %i %i %i' % (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"),
+                                                                i['user'].ljust(17),
+                                                                stringN(i['inuse_room']),
+                                                                stringN(i['sleep_room']),
+                                                                stat_temps,
+                                                                i['HOME'], i['AWAY'], i['OUT'], i['AWAKE'], i['ACTIVE'], i['ACTIVE_SLEEP_ROOM']) )
 
     return state_list
 
@@ -116,7 +121,8 @@ def select_temperatures(state_list,temp_name):
         if len(temps) == 0 or (temp['temp'] != temps[-1]['temp'] and temp['time'] >= temps[-1]['time'] + datetime.timedelta(minutes=MINIMUM_TIME_AT_TEMP)):
             temps.append(temp.copy())
         elif len(temps) > 1:
-            #else, the time between two events to short, move the later temp forwards (note this also lets through if new temp is same as last, but does no harm
+            #else, the time between two events to short,
+            #move the later temp forwards (note this also lets through if new temp is same as last, but does no harm
             #but if only one temp don't check for doubles
             if temps[-2]['temp'] != temp['temp']:
                 temps[-1]['temp'] = temp['temp']
