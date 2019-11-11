@@ -3,6 +3,8 @@ import pytz
 
 import logging
 
+from user import User
+
 ukest = pytz.timezone('Europe/London')
 
 def calc_event_triggers(start, end, state):
@@ -34,32 +36,6 @@ def build_trigger_list(event_list, params):
     
     return trigger_list
 
-def calc_residency(temp, params):
-    #determine from state counts where the user is
-    #counts reflect the number of active events that idicate a particular state.
-    #Presidency, Home, Away, otherwise default.
-    if temp['HOME'] > 0:
-        return 'HOME'
-    elif temp['AWAY'] > 0 or temp['OUT'] > 0:
-        return 'AWAY'
-    else:
-        return params['default_residency']
-
-def calc_state(temp_resident, state_counters, params):
-    #determine user state and temps from residency and state counters and users parameters
-    #return state, inuse temp, sleep temp
-    if temp_resident == 'AWAY':
-        state = ('AWAY', None, None)
-    elif state_counters['AWAKE'] == 0:
-        state = ('SLEEP', None, params['temp_asleep'])
-    elif state_counters['ACTIVE_SLEEP_ROOM'] > 0:
-        state = ('ACTIVE_SLEEP_ROOM', params['temp_active'], params['temp_active'])
-    elif state_counters['ACTIVE'] > 0:
-        state = ('ACTIVE', params['temp_active'], None)
-    else:
-        state = ('INACTIVE', params['temp_inactive'], None)
-    return state
-
 def get_users_states(event_list, params, statlist):
     #takes full list of events (sorting not important) for a user.
     #Converts to a trigger list (sorted)
@@ -67,46 +43,31 @@ def get_users_states(event_list, params, statlist):
 
     trigger_list = build_trigger_list(event_list, params) #convert events to list of starts/ends
 
-    #setup temp variable to store state
-    temp = {}
-    temp['name'] = params['name']
-    temp['user'] = 'SLEEP'
-    temp['inuse_room'] = temp['sleep_room'] = None
-    #counter for each state to handle multiple overlapping states.
-    state_counters = {'HOME':0, 'AWAY':0, 'OUT':0, 'AWAKE':0, 'ACTIVE':0, 'ACTIVE_SLEEP_ROOM':0}
+    user = User(params, statlist) #create a user with rooms temps, etc.
     
-    #print(statlist)
-    for name, _ in statlist.iteritems():
-        temp[name] = None
-
+    temp = {'username': params['name']}
     state_list = []
     for trigger in trigger_list:
-        state_counters[trigger['state']] += trigger['trigger']
         temp['time'] = trigger['time']
 
-        temp_resident = calc_residency(state_counters, params) #is user in?
-
-        temp['user'], temp['inuse_room'], temp['sleep_room'] = calc_state(temp_resident, state_counters, params) #users state and room needs
-
-        for room in params['awake_rooms']:
-            temp[room] = temp['inuse_room']
-
-        if params['sleep_room'] in params['awake_rooms']:
-            temp[params['sleep_room']] = max(temp['sleep_room'], temp['inuse_room'])
-        else:
-            temp[params['sleep_room']] = temp['sleep_room']
+        user.apply_trigger(trigger) #update the rooms temps, etc. based on state changes.
         
-        temp['counters'] = state_counters.copy() #store counters in temp
-        if len(state_list) == 0 or (temp['time'] != state_list[-1]['time'] and temp['user'] != state_list[-1]['user']):
+        temp['counters'] = user.state_counters.copy() #store counters in temp
+        temp['roomtemps'] = user.roomtemps.copy() #store room temps in temp
+        temp['state'] = user.current_state
+        temp['inuse_room'] = user.inuse_room_temp
+        temp['sleep_room'] = user.sleep_room_temp
+        
+        if len(state_list) == 0 or (temp['time'] != state_list[-1]['time'] and user.current_state != state_list[-1]['state']):
             state_list.append(temp.copy())
-        elif temp['user'] != state_list[-1]['user']:
+        elif user.current_state != state_list[-1]['state']:
             state_list[-1] = temp.copy()
 
     logging.debug("merged %s state list"%params['name'])
     for i in state_list:
-        stat_temps = ' '.join(stringN(i[e]) for e, _ in statlist.iteritems())
+        stat_temps = ' '.join(stringN(i['roomtemps'][statnane]) for statnane, _ in statlist.iteritems())
         logging.debug( '%s %s, %s %s, %s other %i %i %i %i %i %i' % (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"),
-                                                                i['user'].ljust(17),
+                                                                i['state'].ljust(17),
                                                                 stringN(i['inuse_room']),
                                                                 stringN(i['sleep_room']),
                                                                 stat_temps,

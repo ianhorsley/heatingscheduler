@@ -71,22 +71,22 @@ combined_state_list.sort(key=lambda x:x['time'])
 
 #create temp dictionary to hold state as processing triggers.
 temp = {}
-temp['IAN'] = temp['IZZY'] = {'inuse_room':None,'sleep_room':None,'user':'Not Set'}
+temp['IAN'] = temp['IZZY'] = {'inuse_room':None,'sleep_room':None,'state':'Not Set','roomtemps':{}}
 #set the room array up for each user to hold users state and temperature demands and for manual rooms store frost temp.
 for name, controllersettings in statlist.iteritems():
   if controllersettings['control_mode'] == 'manual':
     temp[name] = controllersettings['frost_temperature']
-  temp['IAN'][name] = None
-  temp['IZZY'][name] = None
+  temp['IAN']['roomtemps'][name] = None
+  temp['IZZY']['roomtemps'][name] = None
 
 state_list = []
 for trigger in combined_state_list:
-  temp[trigger['name']] = trigger
+  temp[trigger['username']] = trigger
   temp['time'] = trigger['time']
 
   for name, controllersettings in statlist.iteritems():
     if controllersettings['control_mode'] == 'auto':
-      temp[name] = max(controllersettings['frost_temperature'],temp['IAN'][name],temp['IZZY'][name])
+      temp[name] = max(controllersettings['frost_temperature'],temp['IAN']['roomtemps'][name],temp['IZZY']['roomtemps'][name])
 
   if len(state_list) == 0 or temp['time'] != state_list[-1]['time']:
     state_list.append(temp.copy())
@@ -97,7 +97,7 @@ ukest = pytz.timezone('Europe/London')
 logging.debug("room state tracking")
 logging.debug('Time (m-d H:m) Kit B1 B2 Cons other IanState IzzyState')
 for i in state_list:
-  logging.debug('%s %i %i %i %i other %s %s'% (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['Kit'], i['B1'], i['B2'], i['Cons'], i['IAN']['user'].ljust(17), i['IZZY']['user'].ljust(17))   )
+  logging.debug('%s %i %i %i %i other %s %s'% (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['Kit'], i['B1'], i['B2'], i['Cons'], i['IAN']['state'].ljust(17), i['IZZY']['state'].ljust(17))   )
 
 #filter room temperatures
 kitchen_temps = select_temperatures(state_list,'Kit')
