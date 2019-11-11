@@ -51,7 +51,7 @@ def get_users_states(event_list, params, statlist):
         temp['time'] = trigger['time']
 
         user.apply_trigger(trigger) #update the rooms temps, etc. based on state changes.
-        
+
         temp['counters'] = user.state_counters.copy() #store counters in temp
         temp['roomtemps'] = user.roomtemps.copy() #store room temps in temp
         temp['state'] = user.current_state
