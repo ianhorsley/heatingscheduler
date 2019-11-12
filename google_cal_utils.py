@@ -42,11 +42,10 @@ class gcal_processor(object):
         combined_list = {}
         for calendar_id in calendar_id_list:
             events = self.get_calendar_events(calendar_id, user)
-            eventsfiltered = self.filter_events(events, user)
-            combined_list = self.combine_event_lists(combined_list, eventsfiltered)
+            combined_list = self.combine_event_lists(combined_list, events)
         return combined_list
     
-    def get_calendar_events(self, calendar_id, default_user=None):
+    def get_calendar_events(self, calendar_id, user=None):
         """Get events from a calendar, filtering, extending by reminders and processing for state.
         Returns list of dictionaries"""
         #assume that we record actual time of the event and that reminder is set to trigger user to leave house.
@@ -94,7 +93,7 @@ class gcal_processor(object):
 
                     if len(matching_states) <= 1: #only process if less than two states, otherwise warn
                         if len(matching_users) == 0: #if doesn't have any users attach default
-                            matching_users = default_user
+                            matching_users = user
                         if len(matching_states) == 1: print "ddd", len(matching_states) == 1, not matching_states[0] == 'IGNORE'
                         if len(matching_states) == 1 and not matching_states[0] == 'IGNORE': #if it has a state record this.
                             event_list.append({
@@ -124,15 +123,17 @@ class gcal_processor(object):
                         logging.warn("Calendar event, issue with to many states")
                         
         event_list.sort(key=lambda x:x['start'])
-        return event_list
+        
+        if user is None:
+            return event_list
+        else:
+            return self.filter_events(event_list, user)
 
     def get_users_events(self, params):
         """Get all the events for a user."""
 
         events = self.get_calendars_events(params['calendar_id_list'], params['name'])
-
         events_work = self.get_calendar_events(params['calendar_id_work'], params['name'])
-
         events_awake = self.get_awake_events(events_work, events, params, self.connector.start_time, 10)
 
         combined_list = self.combine_event_lists(events_awake, events, events_work)
@@ -179,6 +180,8 @@ class gcal_processor(object):
                     new_list.append(events[i])
                 elif events[i]['end'] > new_list[-1]['end']: #if not inside recorded event
                     new_list[-1]['end'] = events[i]['end']
+                    new_list[-1]['summary'] += "/" + events[i]['summary']
+                    new_list[-1]['calendar_name'] += "/" + events[i]['calendar_name']
             else:
                 new_list.append(events[i])
                     
