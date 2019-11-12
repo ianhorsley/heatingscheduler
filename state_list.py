@@ -70,10 +70,14 @@ class StateList(object):
             for name, controllersettings in statlist.iteritems():
                 temp[name] = self.current_room_temp(temp, name, controllersettings)
 
-            if len(self.room_state_list) == 0 or temp['time'] != self.room_state_list[-1]['time']:
-                self.room_state_list.append(temp.copy())
-            else: #if two triggers for the same time, update the previous state with the additional users information updated
-                self.room_state_list[-1] = temp.copy()
+            self._add_room_state(temp)
+    
+    def _add_room_state(self, temp):
+        #add new room state or update existing depending on whether the time is the same.
+        if len(self.room_state_list) == 0 or temp['time'] != self.room_state_list[-1]['time']:
+            self.room_state_list.append(temp.copy())
+        else: #if two triggers for the same time, update the previous state with the additional users information updated
+            self.room_state_list[-1] = temp.copy()
     
     def current_room_temp(self, current_room_state, name, controllersettings):
         #compute current room temp based on user states and controllersettings
