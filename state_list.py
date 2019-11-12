@@ -40,12 +40,12 @@ class StateList(object):
         for i in self.user_state_list:
             stat_temps = ' '.join(self._stringN(i.roomtemps[statnane]) for statnane, _ in statlist.iteritems())
             logging.debug( '%s %s, %s %s, %s other %i %i %i %i %i %i' % (i.last_updated.astimezone(ukest).strftime("%m-%d %H:%M"),
-                                                                    i.current_state.ljust(17),
-                                                                    self._stringN(i.inuse_room_temp),
-                                                                    self._stringN(i.sleep_room_temp),
-                                                                    stat_temps,
-                                                                    i.state_counters['HOME'], i.state_counters['AWAY'], i.state_counters['OUT'],
-                                                                    i.state_counters['AWAKE'], i.state_counters['ACTIVE'], i.state_counters['ACTIVE_SLEEP_ROOM']) )
+                                                        i.current_state.ljust(17),
+                                                        self._stringN(i.inuse_room_temp),
+                                                        self._stringN(i.sleep_room_temp),
+                                                        stat_temps,
+                                                        i.state_counters['HOME'], i.state_counters['AWAY'], i.state_counters['OUT'],
+                                                        i.state_counters['AWAKE'], i.state_counters['ACTIVE'], i.state_counters['ACTIVE_SLEEP_ROOM']) )
     @staticmethod
     def _stringN(number):
         #string from number handling None case
@@ -59,7 +59,7 @@ class StateList(object):
     
         #create temp dictionary to hold state as processing triggers.
         temp = {}
-        #set the room array up for each user to hold users state and temperature demands and 
+        #set the room array up for each user to hold users state and temperature demands and
         for name in self.usernames:
             temp[name] = User({}, statlist)
 
@@ -94,6 +94,6 @@ class StateList(object):
         logging.debug("room state tracking")
         logging.debug('Time (m-d H:m) Kit B1 B2 Cons other IanState IzzyState')
         for i in self.room_state_list:
-            logging.debug('%s %i %i %i %i other %s %s'% (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), 
+            logging.debug('%s %i %i %i %i other %s %s'% (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"),
                                                     i['Kit'], i['B1'], i['B2'], i['Cons'],
-                                                    i['IAN'].current_state.ljust(17), i['IZZY'].current_state.ljust(17))   )
+                                                    i['IAN'].current_state.ljust(17), i['IZZY'].current_state.ljust(17)))

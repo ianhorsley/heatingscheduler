@@ -45,19 +45,11 @@ def get_users_states(event_list, params, statlist):
     trigger_list = build_trigger_list(event_list, params) #convert events to list of starts/ends
 
     user = User(params, statlist) #create a user with rooms temps, etc.
-    
-    #temp = {'username': params['name']}
     state_list = StateList(params['name'])
 
     for trigger in trigger_list:
         user.apply_trigger(trigger) #update the rooms temps, etc. based on state changes.
 
-        #temp['counters'] = user.state_counters.copy() #store counters in temp
-        #temp['roomtemps'] = user.roomtemps.copy() #store room temps in temp
-        #temp['state'] = user.current_state
-        #temp['inuse_room'] = user.inuse_room_temp
-        #temp['sleep_room'] = user.sleep_room_temp
-        
         state_list.add_user_state(user)
 
     logging.debug("merged %s state list"%params['name'])

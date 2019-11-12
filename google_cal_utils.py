@@ -191,7 +191,7 @@ class gcal_processor(object):
         events_awake = []
         
         baseevent = {'state':"AWAKE",'users':[params['name']],'summary':'','calendar_name':'Process'}
-                                    
+        
         for shift_day in range(0,number_of_days):
 
             start_datetime = timeMidnight + datetime.timedelta(days=shift_day)

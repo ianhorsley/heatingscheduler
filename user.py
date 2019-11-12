@@ -55,7 +55,7 @@ class User(object):
         else:
             state = ('INACTIVE', self.temp_inactive, None)
         self.current_state, self.inuse_room_temp, self.sleep_room_temp = state
-        
+
     def update_room_temps(self):
         #update room temps based on residency, states and counters
         for room in self.awake_rooms:
