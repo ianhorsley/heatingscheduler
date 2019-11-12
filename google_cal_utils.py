@@ -212,7 +212,6 @@ class gcal_processor(object):
         event_start = min(shifts['starting'][0]['start'] - params['minimum_wake_before_event'],
                                 shifts['ending'][0]['end'] + params['minimum_wake_after_event'] + params['sleep_night_to_night'])
         event2 = self._create_event([params['name']], event_start, times['end'])
-
         return [event1, event2]
 
     def _night_starting_events(self, shifts, times, params):
@@ -220,9 +219,8 @@ class gcal_processor(object):
         event_start = min(times['start'] + params['default_wake'], times['start_events_today'] - params['minimum_wake_before_event'])
         event_end = shifts['starting'][0]['start'] - params['minimum_wake_before_event'] - params['sleep_before_night']
         event1 = self._create_event([params['name']], event_start, event_end)
-        eventstart = shifts['starting'][0]['start'] - params['minimum_wake_before_event']
+        event_start = shifts['starting'][0]['start'] - params['minimum_wake_before_event']
         event2 = self._create_event([params['name']], event_start, times['end'])
-
         return [event1, event2]
 
     def _night_ending_events(self, shifts, times, params):
@@ -232,14 +230,12 @@ class gcal_processor(object):
         event_start = shifts['ending'][0]['end'] + params['default_sleep']
         event_end = max(times['start'] + params['default_sleep'], times['stop_events_today'] + params['minimum_wake_after_event'])
         event2 = self._create_event([params['name']], event_start, event_end)
-
         return [event1, event2]
 
     def _no_shift_events(self, shifts, times, params):
         #create awake event for a day shift
         if (len(shifts['complete']),len(shifts['starting']), len(shifts['ending'])) != (0, 0, 0):
             logging.warn("confused")
-
         event_start = min(times['start'] + params['default_wake'], times['start_events_today'] - params['minimum_wake_before_event'])
         event_end = max(times['start'] + params['default_sleep'], times['stop_events_today'] + params['minimum_wake_after_event'])
         return [self._create_event([params['name']], event_start, event_end)]
@@ -257,7 +253,7 @@ class gcal_processor(object):
             (0, 1, 0): self._night_starting_events,
             (0, 0, 1): self._night_ending_events
             }
-        
+
         events_work_short = [elem for elem in events_work if elem['length'] < datetime.timedelta(days=1)] #filter length less 1 day
         events_other_short = [elem for elem in events_other if elem['length'] < datetime.timedelta(days=1)]
         
