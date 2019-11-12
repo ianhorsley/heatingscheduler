@@ -37,6 +37,8 @@ class StateList(object):
 
     def print_user_debug(self, statlist):
         #print debug log of state list
+        stats = ' '.join(statname for statname, _ in statlist.iteritems())
+        logging.debug("date/time, state, in, sleep, " + stats + "H, Aw, O, Aw, Ac, AS")
         for i in self.user_state_list:
             stat_temps = ' '.join(self._stringN(i.roomtemps[statname]) for statname, _ in statlist.iteritems())
             logging.debug( '%s %s, %s %s, %s other %i %i %i %i %i %i' % (i.last_updated.astimezone(ukest).strftime("%m-%d %H:%M"),
