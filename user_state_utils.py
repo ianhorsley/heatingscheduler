@@ -129,12 +129,8 @@ def reduce_temperatures_for_stat(state_list):
 
     for group in grouped_state_list:
         if len(group) <= MAXIMUM_STATES_PER_STAT:
-            #print("No filter needed", group[0])
             temps = temps + group
         else:
-            #print("Filtering needed", group[0])
-            #for i in group:
-            #    print( i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['temp'])
             filtered = None
             temp_range = START_TEMP_RANGE
             minutes_range = START_MINUTES_RANGE
@@ -144,9 +140,6 @@ def reduce_temperatures_for_stat(state_list):
                 minutes_range += STEP_MINUTES_RANGE
                 if (temp_range > 15):
                     logging.warn("WARNING LONG FILTERING")
-            #print("after")
-            #for i in filtered:
-            #    print( i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['temp'])
             temps = temps + filtered
 
     temps.sort(key=lambda x:x['time'])

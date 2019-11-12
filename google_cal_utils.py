@@ -1,9 +1,6 @@
 
 import datetime
-
 import logging
-
-#from heatmisercontroller import stats_defn
 
 from google_cal_connector import GoogleConnector
 
@@ -94,7 +91,7 @@ class gcal_processor(object):
                     if len(matching_states) <= 1: #only process if less than two states, otherwise warn
                         if len(matching_users) == 0: #if doesn't have any users attach default
                             matching_users = user
-                        if len(matching_states) == 1: print "ddd", len(matching_states) == 1, not matching_states[0] == 'IGNORE'
+                        if len(matching_states) == 1: print("ddd", len(matching_states) == 1, not matching_states[0] == 'IGNORE')
                         if len(matching_states) == 1 and not matching_states[0] == 'IGNORE': #if it has a state record this.
                             event_list.append({
                                                                 'start': start,
