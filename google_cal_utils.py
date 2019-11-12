@@ -187,13 +187,21 @@ class gcal_processor(object):
     @staticmethod
     def _in_range(value, bottom, top):
         return value >= bottom and value < top
-        
+    
+    @staticmethod
+    def _create_event(usernames, start, end):
+        baseevent = {'state':"AWAKE",'summary':'','calendar_name':'Process'}
+        baseevent['users'] = usernames
+        baseevent['start'] = start
+        baseevent['end'] = end
+        return baseevent
+    
     def get_awake_events(self, events_work, events_other, params, timeMidnight, number_of_days):
         #takes a set of events from a calendar
         #filters b length less than a day and assess each day.
         #returns list of AWAKE events.
         events_awake = []
-        baseevent = {'state':"AWAKE",'users':[params['name']],'summary':'','calendar_name':'Process'}
+        #baseevent = {'state':"AWAKE",'users':[params['name']],'summary':'','calendar_name':'Process'}
         
         events_work_short = [elem for elem in events_work if elem['length'] < datetime.timedelta(days=1)] #filter length less 1 day
         events_other_short = [elem for elem in events_other if elem['length'] < datetime.timedelta(days=1)]
@@ -218,19 +226,17 @@ class gcal_processor(object):
                 start_events_today = end_time
                 stop_events_today = start_time
 
-
             number_of_shifts = [len(shifts_complete),len(shifts_starting), len(shifts_ending)]
-            #print(number_of_shifts)
+            print(number_of_shifts)
 
             if number_of_shifts == [1, 0, 0]:
                 #print ("day shift")
-                event = baseevent.copy()
-                event['start'] = min(start_time + params['default_wake'],
+                event_start = min(start_time + params['default_wake'],
                                         min(shifts_complete[0]['start'],start_events_today) - params['minimum_wake_before_event'])
-                event['end'] = max(start_time + params['default_sleep'],
+                event_end = max(start_time + params['default_sleep'],
                                         max(shifts_complete[0]['end'],stop_events_today) + params['minimum_wake_after_event'])
                 #print(event)
-                events_awake.append(event)
+                events_awake.append(self._create_event([params['name']], event_start, event_end))
 
             elif number_of_shifts == [0, 1, 1]:
                 #print ("night to night")
@@ -276,4 +282,3 @@ class gcal_processor(object):
                 events_awake.append(event)
 
         return self.merge_events(events_awake)
-
