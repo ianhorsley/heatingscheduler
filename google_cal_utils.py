@@ -192,8 +192,8 @@ class gcal_processor(object):
         return value >= bottom and value < top
     
     @staticmethod
-    def _create_event(usernames, start, end):
-        baseevent = {'state':"AWAKE",'summary':'','calendar_name':'Process'}
+    def _create_event(usernames, start, end, summary):
+        baseevent = {'state':"AWAKE",'summary':summary,'calendar_name':'Process'}
         baseevent['users'] = usernames
         baseevent['start'] = start
         baseevent['end'] = end
@@ -205,34 +205,34 @@ class gcal_processor(object):
                                         min(shifts['complete'][0]['start'],times['start_events_today']) - params['minimum_wake_before_event'])
         event_end = max(times['start'] + params['default_sleep'],
                                         max(shifts['complete'][0]['end'],times['stop_events_today']) + params['minimum_wake_after_event'])
-        return [self._create_event([params['name']], event_start, event_end)]
+        return [self._create_event([params['name']], event_start, event_end, 'awake for day shift')]
 
     def _night_to_night_events(self, shifts, times, params):
         #create awake events day with end of night shift and start of another
         event_end = shifts['ending'][0]['end'] + params['minimum_wake_after_event']
-        event1 = self._create_event([params['name']], times['start'], event_end)
+        event1 = self._create_event([params['name']], times['start'], event_end, 'awake before bed after night')
 
         event_start = min(shifts['starting'][0]['start'] - params['minimum_wake_before_event'],
                                 shifts['ending'][0]['end'] + params['minimum_wake_after_event'] + params['sleep_night_to_night'])
-        event2 = self._create_event([params['name']], event_start, times['end'])
+        event2 = self._create_event([params['name']], event_start, times['end'], 'awake before night shift')
         return [event1, event2]
 
     def _night_starting_events(self, shifts, times, params):
         #create awake event day with start of night shift
         event_start = min(times['start'] + params['default_wake'], times['start_events_today'] - params['minimum_wake_before_event'])
         event_end = shifts['starting'][0]['start'] - params['minimum_wake_before_event'] - params['sleep_before_night']
-        event1 = self._create_event([params['name']], event_start, event_end)
+        event1 = self._create_event([params['name']], event_start, event_end, 'awake for day')
         event_start = shifts['starting'][0]['start'] - params['minimum_wake_before_event']
-        event2 = self._create_event([params['name']], event_start, times['end'])
+        event2 = self._create_event([params['name']], event_start, times['end'], 'awake after nap before night shift')
         return [event1, event2]
 
     def _night_ending_events(self, shifts, times, params):
         #create awake event day with end of night shift
         event_end = shifts['ending'][0]['end'] + params['minimum_wake_after_event'] +    params['sleep_after_night']
-        event1 = self._create_event([params['name']], times['start'], event_end)
+        event1 = self._create_event([params['name']], times['start'], event_end, 'awake before nap after night shift')
         event_start = shifts['ending'][0]['end'] + params['default_sleep']
         event_end = max(times['start'] + params['default_sleep'], times['stop_events_today'] + params['minimum_wake_after_event'])
-        event2 = self._create_event([params['name']], event_start, event_end)
+        event2 = self._create_event([params['name']], event_start, event_end, 'awake for day')
         return [event1, event2]
 
     def _no_shift_events(self, shifts, times, params):
@@ -241,7 +241,7 @@ class gcal_processor(object):
             logging.warn("confused")
         event_start = min(times['start'] + params['default_wake'], times['start_events_today'] - params['minimum_wake_before_event'])
         event_end = max(times['start'] + params['default_sleep'], times['stop_events_today'] + params['minimum_wake_after_event'])
-        return [self._create_event([params['name']], event_start, event_end)]
+        return [self._create_event([params['name']], event_start, event_end, 'awake for day')]
 
     def get_awake_events(self, events_work, events_other, params, timeMidnight, number_of_days):
         #takes a set of events from a calendar
