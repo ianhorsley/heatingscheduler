@@ -24,7 +24,7 @@ class GoogleConnector(object):
 
     def connect_google(self):
         creds = service_account.Credentials.from_service_account_file(self.cred_file, scopes=[self.scope])
-        self.service = build('calendar', 'v3', credentials=creds)
+        self.service = build('calendar', 'v3', credentials=creds, cache_discovery=False)
         return self.service
 
     def set_time_zone(self, timezonestring):
