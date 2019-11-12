@@ -3,17 +3,18 @@
 
 class User(object):
     #Holds user data and functions
-    #setup variable to store state
-    current_state = 'Not Set'
-    inuse_room_temp = None
-    sleep_room_temp = None
-    current_residency = None
-    last_updated = None
-    #counter for each state to handle multiple overlapping states.
-    state_counters = {'HOME':0, 'AWAY':0, 'OUT':0, 'AWAKE':0, 'ACTIVE':0, 'ACTIVE_SLEEP_ROOM':0}
-    roomtemps = {}
 
     def __init__(self, params, statlist):
+        #setup variable to store state
+        self.current_state = 'Not Set'
+        self.inuse_room_temp = None
+        self.sleep_room_temp = None
+        self.current_residency = None
+        self.last_updated = None
+        #counter for each state to handle multiple overlapping states.
+        self.state_counters = {'HOME':0, 'AWAY':0, 'OUT':0, 'AWAKE':0, 'ACTIVE':0, 'ACTIVE_SLEEP_ROOM':0}
+        self.roomtemps = {}
+        
         for key, value in params.items():
             setattr(self, key, value)
             

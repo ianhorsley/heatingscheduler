@@ -9,11 +9,12 @@ ukest = pytz.timezone('Europe/London')
 
 class StateList(object):
     #Holds user statelist and generates room statelist
-    user_state_list = []
-    room_state_list = []
 
     def __init__(self, usernames):
         self.usernames = usernames
+        
+        self.user_state_list = []
+        self.room_state_list = []
     
     def __add__(self, other):
         #combine and sort statelists
@@ -29,16 +30,15 @@ class StateList(object):
     
     def add_user_state(self, new_state):
         #add a new state if different from last in list.
-        
         if len(self.user_state_list) == 0 or (new_state.last_updated != self.user_state_list[-1].last_updated and new_state.current_state != self.user_state_list[-1].current_state):
             self.user_state_list.append(copy.deepcopy(new_state))
         elif new_state.current_state != self.user_state_list[-1].current_state:
             self.user_state_list[-1] = copy.deepcopy(new_state)
-            
+        
     def print_user_debug(self, statlist):
         #print debug log of state list
         for i in self.user_state_list:
-            stat_temps = ' '.join(self._stringN(i.roomtemps[statnane]) for statnane, _ in statlist.iteritems())
+            stat_temps = ' '.join(self._stringN(i.roomtemps[statname]) for statname, _ in statlist.iteritems())
             logging.debug( '%s %s, %s %s, %s other %i %i %i %i %i %i' % (i.last_updated.astimezone(ukest).strftime("%m-%d %H:%M"),
                                                         i.current_state.ljust(17),
                                                         self._stringN(i.inuse_room_temp),
@@ -46,6 +46,7 @@ class StateList(object):
                                                         stat_temps,
                                                         i.state_counters['HOME'], i.state_counters['AWAY'], i.state_counters['OUT'],
                                                         i.state_counters['AWAKE'], i.state_counters['ACTIVE'], i.state_counters['ACTIVE_SLEEP_ROOM']) )
+
     @staticmethod
     def _stringN(number):
         #string from number handling None case
