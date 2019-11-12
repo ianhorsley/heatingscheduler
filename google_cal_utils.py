@@ -277,7 +277,7 @@ class gcal_processor(object):
             shifts['starting'] = [elem for elem in events_work_short if self._in_range(elem['start'], start_time, end_time) and elem['end'] >= end_time]
             shifts['ending'] = [elem for elem in events_work_short if elem['start'] < start_time and self._in_range(elem['end'], start_time, end_time)]
             number_of_shifts = (len(shifts['complete']),len(shifts['starting']), len(shifts['ending']))
-            
+
             # Get the function from shift type dictionary
             shift_events = shift_types.get(number_of_shifts, self._no_shift_events)
             events_awake.extend(shift_events(shifts, times, params))

@@ -25,16 +25,16 @@ class StateList(object):
         ret_user_state_list.user_state_list = self.user_state_list + other.user_state_list
         ret_user_state_list.user_state_list.sort(key=lambda x:x.last_updated)
         return ret_user_state_list
-    
+
     #Handle user state list
-    
+
     def add_user_state(self, new_state):
         #add a new state if different from last in list.
         if len(self.user_state_list) == 0 or (new_state.last_updated != self.user_state_list[-1].last_updated and new_state.current_state != self.user_state_list[-1].current_state):
             self.user_state_list.append(copy.deepcopy(new_state))
         elif new_state.current_state != self.user_state_list[-1].current_state:
             self.user_state_list[-1] = copy.deepcopy(new_state)
-        
+
     def print_user_debug(self, statlist):
         #print debug log of state list
         for i in self.user_state_list:
@@ -53,11 +53,11 @@ class StateList(object):
         if number is None:
             return " N"
         return str(number)
-        
+
     #Create room state list
-    
+
     def create_room_state_list(self, statlist):
-    
+
         #create temp dictionary to hold state as processing triggers.
         temp = {}
         #set the room array up for each user to hold users state and temperature demands and
@@ -72,17 +72,17 @@ class StateList(object):
                 temp[name] = self.current_room_temp(temp, name, controllersettings)
 
             self._add_room_state(temp)
-    
+
     def _add_room_state(self, temp):
         #add new room state or update existing depending on whether the time is the same.
         if len(self.room_state_list) == 0 or temp['time'] != self.room_state_list[-1]['time']:
             self.room_state_list.append(temp.copy())
         else: #if two triggers for the same time, update the previous state with the additional users information updated
             self.room_state_list[-1] = temp.copy()
-    
+
     def current_room_temp(self, current_room_state, name, controllersettings):
         #compute current room temp based on user states and controllersettings
-        
+
         if controllersettings['control_mode'] == 'manual':
             return controllersettings['frost_temperature']
         else:
@@ -90,7 +90,7 @@ class StateList(object):
             for user in self.usernames:
                 maxtemp = max(maxtemp, current_room_state[user].roomtemps[name])
             return maxtemp
-            
+
     def print_room_debug(self):
         logging.debug("room state tracking")
         logging.debug('Time (m-d H:m) Kit B1 B2 Cons other IanState IzzyState')

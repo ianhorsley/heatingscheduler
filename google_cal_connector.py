@@ -73,7 +73,7 @@ class GoogleConnector(object):
                                         'lastUpdated':event_list_results.get('updated'),
                                         'lastQueried':datetime.datetime.now()
                                         }
-        
+
         logging.info("Calender %s queried at %s, and last updated %s" % (event_list_results.get('summary'),
                                                                 datetime.datetime.now().strftime("%m-%d %H:%M"),
                                                                 event_list_results.get('updated'))
