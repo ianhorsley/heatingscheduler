@@ -14,13 +14,13 @@ class User(object):
         #counter for each state to handle multiple overlapping states.
         self.state_counters = {'HOME':0, 'AWAY':0, 'OUT':0, 'AWAKE':0, 'ACTIVE':0, 'ACTIVE_SLEEP_ROOM':0}
         self.roomtemps = {}
-        
+
         for key, value in params.items():
             setattr(self, key, value)
-            
+
         for name, _ in statlist.iteritems():
             self.roomtemps[name] = None
-    
+
     def apply_trigger(self, trigger):
         #apply trigger to states, temps, etc.
         self.state_counters[trigger['state']] += trigger['trigger']
@@ -30,7 +30,7 @@ class User(object):
         self.calc_state() #users state and room needs
 
         self.update_room_temps()
-    
+
     def calc_residency(self):
         #determine from state counts where the user is
         #counts reflect the number of active events that idicate a particular state.
@@ -41,7 +41,7 @@ class User(object):
             self.current_residency =  'AWAY'
         else:
             self.current_residency =  self.default_residency
-            
+
     def calc_state(self):
         #determine user state and temps from residency and state counters and users parameters
         #return state, inuse temp, sleep temp

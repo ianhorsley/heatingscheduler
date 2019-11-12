@@ -34,7 +34,7 @@ def build_trigger_list(event_list, params):
             trigger_list.extend(calc_event_triggers(event['end'],event['end'] + params['active_time'],'ACTIVE'))
 
     trigger_list.sort(key=lambda x:x['time'])
-    
+
     return trigger_list
 
 def get_users_states(event_list, params, statlist):
@@ -110,10 +110,15 @@ STEP_MINUTES_RANGE = 30
 def filter_temperatures_for_stat(state_list,timeStart):
 
     state_list = reduce_temperatures_for_stat(state_list)
-
     endoftime = timeStart + datetime.timedelta(days=MAXIMUM_DAYS_PER_STAT)
 
-    return [{'time':roundTime(x['time'],60*TIME_GRANULARITY),'temp':roundToNearestInt(x['temp'],TEMP_GRANULARITY)} for x in state_list if x['time'] >= timeStart and x['time'] < endoftime]
+    return [_temp_dict(x['time'], x['temp']) for x in state_list if _in_range(x['time'], timeStart, endoftime)]
+
+def _in_range(value, bottom, top):
+    return value >= bottom and value < top
+
+def _temp_dict(time, temp):
+    return {'time':roundTime(time, 60 * TIME_GRANULARITY), 'temp':roundToNearestInt(temp, TEMP_GRANULARITY)}
 
 def reduce_temperatures_for_stat(state_list):
 
