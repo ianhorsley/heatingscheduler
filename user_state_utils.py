@@ -4,6 +4,7 @@ import pytz
 import logging
 
 from user import User
+from state_list import StateList
 
 ukest = pytz.timezone('Europe/London')
 
@@ -45,41 +46,24 @@ def get_users_states(event_list, params, statlist):
 
     user = User(params, statlist) #create a user with rooms temps, etc.
     
-    temp = {'username': params['name']}
-    state_list = []
-    for trigger in trigger_list:
-        temp['time'] = trigger['time']
+    #temp = {'username': params['name']}
+    state_list = StateList(params['name'])
 
+    for trigger in trigger_list:
         user.apply_trigger(trigger) #update the rooms temps, etc. based on state changes.
 
-        temp['counters'] = user.state_counters.copy() #store counters in temp
-        temp['roomtemps'] = user.roomtemps.copy() #store room temps in temp
-        temp['state'] = user.current_state
-        temp['inuse_room'] = user.inuse_room_temp
-        temp['sleep_room'] = user.sleep_room_temp
+        #temp['counters'] = user.state_counters.copy() #store counters in temp
+        #temp['roomtemps'] = user.roomtemps.copy() #store room temps in temp
+        #temp['state'] = user.current_state
+        #temp['inuse_room'] = user.inuse_room_temp
+        #temp['sleep_room'] = user.sleep_room_temp
         
-        if len(state_list) == 0 or (temp['time'] != state_list[-1]['time'] and user.current_state != state_list[-1]['state']):
-            state_list.append(temp.copy())
-        elif user.current_state != state_list[-1]['state']:
-            state_list[-1] = temp.copy()
+        state_list.add_user_state(user)
 
     logging.debug("merged %s state list"%params['name'])
-    for i in state_list:
-        stat_temps = ' '.join(stringN(i['roomtemps'][statnane]) for statnane, _ in statlist.iteritems())
-        logging.debug( '%s %s, %s %s, %s other %i %i %i %i %i %i' % (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"),
-                                                                i['state'].ljust(17),
-                                                                stringN(i['inuse_room']),
-                                                                stringN(i['sleep_room']),
-                                                                stat_temps,
-                                                                i['counters']['HOME'], i['counters']['AWAY'], i['counters']['OUT'],
-                                                                i['counters']['AWAKE'], i['counters']['ACTIVE'], i['counters']['ACTIVE_SLEEP_ROOM']) )
+    state_list.print_user_debug(statlist)
 
     return state_list
-
-def stringN(number):
-    if number is None:
-        return " N"
-    return str(number)
 
 MINIMUM_TIME_AT_TEMP = 15 #in minutes
 

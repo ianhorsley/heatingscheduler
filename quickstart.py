@@ -65,42 +65,18 @@ a_state_list = get_users_states(combined_list, ian_params, statlist)
 
 #combine users states
 combined_state_list = z_state_list + a_state_list
-combined_state_list.sort(key=lambda x:x['time'])
+#combined_state_list.sort(key=lambda x:x.last_updated)
 
 #process states into list of trigger times with temps for each room
 
 #create temp dictionary to hold state as processing triggers.
-temp = {}
-temp['IAN'] = temp['IZZY'] = {'inuse_room':None,'sleep_room':None,'state':'Not Set','roomtemps':{}}
-#set the room array up for each user to hold users state and temperature demands and for manual rooms store frost temp.
-for name, controllersettings in statlist.iteritems():
-  if controllersettings['control_mode'] == 'manual':
-    temp[name] = controllersettings['frost_temperature']
-  temp['IAN']['roomtemps'][name] = None
-  temp['IZZY']['roomtemps'][name] = None
-
-state_list = []
-for trigger in combined_state_list:
-  temp[trigger['username']] = trigger
-  temp['time'] = trigger['time']
-
-  for name, controllersettings in statlist.iteritems():
-    if controllersettings['control_mode'] == 'auto':
-      temp[name] = max(controllersettings['frost_temperature'],temp['IAN']['roomtemps'][name],temp['IZZY']['roomtemps'][name])
-
-  if len(state_list) == 0 or temp['time'] != state_list[-1]['time']:
-    state_list.append(temp.copy())
-  else: #if two triggers for the same time, update the previous state with the additional users information updated
-    state_list[-1] = temp.copy()
+combined_state_list.create_room_state_list(statlist)
 
 ukest = pytz.timezone('Europe/London')
-logging.debug("room state tracking")
-logging.debug('Time (m-d H:m) Kit B1 B2 Cons other IanState IzzyState')
-for i in state_list:
-  logging.debug('%s %i %i %i %i other %s %s'% (i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['Kit'], i['B1'], i['B2'], i['Cons'], i['IAN']['state'].ljust(17), i['IZZY']['state'].ljust(17))   )
+combined_state_list.print_room_debug()
 
 #filter room temperatures
-kitchen_temps = select_temperatures(state_list,'Kit')
+kitchen_temps = select_temperatures(combined_state_list.room_state_list,'Kit')
 logging.debug('kitchen')
 for i in kitchen_temps:
   logging.debug('%s %i'%( i['time'].astimezone(ukest).strftime("%m-%d %H:%M"), i['temp']))
@@ -135,7 +111,7 @@ for stat_name, controllersettings in statlist.iteritems():
     createsublement(stat, 'lastchanged', 'timethatthedataforthisstatelastchanged')
 
     items = ET.SubElement(stat, 'targets')
-    for temp in select_temperatures(state_list,stat_name):
+    for temp in select_temperatures(combined_state_list.room_state_list, stat_name):
         nextitem = ET.SubElement(items, 'target')
         nextitem.set('time',temp['time'].astimezone(pytz.utc).isoformat())
         nextitem.text = str(temp['temp'])

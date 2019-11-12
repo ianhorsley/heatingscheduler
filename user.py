@@ -4,10 +4,11 @@
 class User(object):
     #Holds user data and functions
     #setup variable to store state
-    current_state = 'SLEEP'
+    current_state = 'Not Set'
     inuse_room_temp = None
     sleep_room_temp = None
     current_residency = None
+    last_updated = None
     #counter for each state to handle multiple overlapping states.
     state_counters = {'HOME':0, 'AWAY':0, 'OUT':0, 'AWAKE':0, 'ACTIVE':0, 'ACTIVE_SLEEP_ROOM':0}
     roomtemps = {}
@@ -22,7 +23,7 @@ class User(object):
     def apply_trigger(self, trigger):
         #apply trigger to states, temps, etc.
         self.state_counters[trigger['state']] += trigger['trigger']
-
+        self.last_updated = trigger['time']
         self.calc_residency() #is user in?
 
         self.calc_state() #users state and room needs
